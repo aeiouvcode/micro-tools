@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EMI Calculator - Loan EMI, Interest & Amortization Schedule</title>
+<meta name="description" content="Free EMI calculator for home, car and personal loans. See monthly EMI, total interest, total payment and a year-wise amortization breakdown. No sign-up, runs on your device.">
+<meta name="theme-color" content="#f6f5f2">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f6f5f2;color:#23262b;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#6f6a61;font-size:.92rem;margin:4px 0 20px}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6f6a61;margin:14px 0 5px}
+  input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#23262b;background:#fff;border:1px solid #d8d4cc;border-radius:10px}
+  input:focus{outline:2px solid #1f3a5f;outline-offset:1px;border-color:#1f3a5f}
+  .hero{margin-top:18px;background:#1f3a5f;color:#fff;border-radius:14px;padding:20px;text-align:center}
+  .hero small{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+  .hero b{display:block;font-size:2.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cell{background:#fff;border:1px solid #d8d4cc;border-radius:12px;padding:12px;text-align:center}
+  .cell b{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums}
+  .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#6f6a61}
+  .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:14px;background:#e6e2da}
+  .bar i{display:block;height:100%}
+  .bar .p{background:#1f3a5f}
+  .bar .i{background:#c98a2b}
+  .legend{display:flex;gap:16px;font-size:.78rem;color:#6f6a61;margin-top:6px}
+  .legend em{font-style:normal}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:.85rem;background:#fff;border-radius:12px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #eceae4;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#efece6;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#6f6a61}
+  .about{margin-top:34px;font-size:.9rem;color:#54504a}
+  .about h2{font-size:1.02rem;color:#23262b;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a39e93;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>EMI Calculator</h1>
+  <p class="sub">Home, car or personal loan. Results update as you type.</p>
+  <label for="p">Loan amount (&#8377;)</label>
+  <input id="p" inputmode="decimal" value="1000000">
+  <label for="r">Interest rate (% per year)</label>
+  <input id="r" inputmode="decimal" value="9">
+  <label for="y">Tenure (years)</label>
+  <input id="y" inputmode="decimal" value="10">
+  <div class="hero"><small>Monthly EMI</small><b id="emi">-</b></div>
+  <div class="split">
+    <div class="cell"><b id="tp">-</b><span>Principal</span></div>
+    <div class="cell"><b id="ti">-</b><span>Total interest</span></div>
+  </div>
+  <div class="bar"><i class="p" id="barp" style="width:60%"></i><i class="i" id="bari" style="width:40%"></i></div>
+  <div class="legend"><em><i style="background:#1f3a5f"></i>Principal</em><em><i style="background:#c98a2b"></i>Interest</em></div>
+  <div style="overflow-x:auto">
+  <table id="sched">
+    <thead><tr><th>Year</th><th>Principal paid</th><th>Interest paid</th><th>Balance</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div class="about">
+    <h2>How EMI is calculated</h2>
+    <p>EMI = P &times; r &times; (1+r)<sup>n</sup> &divide; ((1+r)<sup>n</sup> &minus; 1), where P is the loan amount, r is the monthly interest rate (annual rate &divide; 12 &divide; 100) and n is the number of monthly instalments.</p>
+    <h2>Is this exact?</h2>
+    <p>This uses the standard reducing-balance formula banks use. Actual loan schedules can differ slightly with processing fees, prepayments or rate resets. All calculation happens on your device.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function emiMonthly(P,annualPct,years){
+  var r=annualPct/12/100,n=Math.round(years*12);
+  if(P<=0||n<=0)return NaN;
+  if(r===0)return P/n;
+  var f=Math.pow(1+r,n);
+  return P*r*f/(f-1);
+}
+function amortizeYearly(P,annualPct,years){
+  var r=annualPct/12/100,n=Math.round(years*12),e=emiMonthly(P,annualPct,years);
+  var bal=P,rows=[],m=1;
+  while(m<=n){
+    var pY=0,iY=0,lim=Math.min(m+11,n);
+    for(;m<=lim;m++){
+      var interest=bal*r;
+      var principal=e-interest;
+      bal-=principal;
+      pY+=principal;iY+=interest;
+    }
+    rows.push({year:rows.length+1,principal:pY,interest:iY,balance:Math.max(0,bal)});
+  }
+  return rows;
+}
+function inr(n){
+  if(typeof n!=="number"||isNaN(n))return "-";
+  return "\u20B9"+Math.round(n).toLocaleString("en-IN");
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var p=document.getElementById("p"),r=document.getElementById("r"),y=document.getElementById("y");
+  function render(){
+    var P=parseFloat(p.value),R=parseFloat(r.value),Y=parseFloat(y.value);
+    var e=emiMonthly(P,R,Y);
+    if(isNaN(e)){document.getElementById("emi").textContent="-";return;}
+    var n=Math.round(Y*12),total=e*n,ti=total-P;
+    document.getElementById("emi").textContent=inr(e);
+    document.getElementById("tp").textContent=inr(P);
+    document.getElementById("ti").textContent=inr(ti);
+    var share=P/total*100;
+    document.getElementById("barp").style.width=share+"%";
+    document.getElementById("bari").style.width=(100-share)+"%";
+    var rows=amortizeYearly(P,R,Y);
+    var html="";
+    rows.forEach(function(row){
+      html+="<tr><td>"+row.year+"</td><td>"+inr(row.principal)+"</td><td>"+inr(row.interest)+"</td><td>"+inr(row.balance)+"</td></tr>";
+    });
+    document.querySelector("#sched tbody").innerHTML=html;
+  }
+  p.addEventListener("input",render);
+  r.addEventListener("input",render);
+  y.addEventListener("input",render);
+  render();
+}
+</script>
+</body>
+</html>

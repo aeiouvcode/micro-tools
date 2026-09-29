@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compound Interest Calculator - With Monthly Contributions</title>
+<meta name="description" content="Free compound interest calculator with yearly to daily compounding and optional monthly contributions. Year-wise growth table. Exact math, no sign-up, runs offline.">
+<meta name="theme-color" content="#f6f4f8">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f6f4f8;color:#26232b;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#6e6878;font-size:.92rem;margin:4px 0 20px}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6e6878;margin:14px 0 5px}
+  input,select{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#26232b;background:#fff;border:1px solid #d8d2e0;border-radius:10px}
+  input:focus,select:focus{outline:2px solid #8a4a72;outline-offset:1px;border-color:#8a4a72}
+  .hero{margin-top:18px;background:#8a4a72;color:#fff;border-radius:14px;padding:20px;text-align:center}
+  .hero small{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+  .hero b{display:block;font-size:2.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cell{background:#fff;border:1px solid #d8d2e0;border-radius:12px;padding:12px;text-align:center}
+  .cell b{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums}
+  .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#6e6878}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:.85rem;background:#fff;border-radius:12px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #eee9f2;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#f1ecf5;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#6e6878}
+  .about{margin-top:34px;font-size:.9rem;color:#544e5c}
+  .about h2{font-size:1.02rem;color:#26232b;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a49cad;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Compound Interest Calculator</h1>
+  <p class="sub">Principal, compounding frequency, optional monthly addition.</p>
+  <label for="p">Initial principal (&#8377;)</label>
+  <input id="p" inputmode="decimal" value="100000">
+  <label for="c">Monthly contribution (&#8377;, optional)</label>
+  <input id="c" inputmode="decimal" value="0">
+  <label for="r">Annual interest rate (%)</label>
+  <input id="r" inputmode="decimal" value="8">
+  <label for="y">Years</label>
+  <input id="y" inputmode="decimal" value="10">
+  <label for="f">Compounding frequency</label>
+  <select id="f">
+    <option value="1">Yearly</option>
+    <option value="2">Half-yearly</option>
+    <option value="4">Quarterly</option>
+    <option value="12" selected>Monthly</option>
+    <option value="365">Daily</option>
+  </select>
+  <div class="hero"><small>Final amount</small><b id="fv">-</b></div>
+  <div class="split">
+    <div class="cell"><b id="dep">-</b><span>Total deposited</span></div>
+    <div class="cell"><b id="int">-</b><span>Interest earned</span></div>
+  </div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>Year</th><th>Deposited</th><th>Interest</th><th>Balance</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  </div>
+  <div class="about">
+    <h2>How contributions compound</h2>
+    <p>The principal compounds at the chosen frequency. Monthly contributions are added at the start of each month and earn the equivalent monthly rate derived from the effective annual yield - so daily compounding with monthly additions stays exact rather than approximated.</p>
+    <h2>A note on rates</h2>
+    <p>FD and RD rates in India typically compound quarterly; savings accounts compound daily but credit monthly. Matching the frequency to the product matters more than most people think.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function effectiveAnnual(ratePct,freq){
+  return Math.pow(1+ratePct/100/freq,freq)-1;
+}
+function compoundYearly(P,monthly,ratePct,freq,years){
+  var ear=effectiveAnnual(ratePct,freq);
+  var monthlyRate=Math.pow(1+ear,1/12)-1;
+  var rows=[],bal=P,dep=P;
+  for(var y=1;y<=Math.round(years);y++){
+    var yearStart=bal;
+    for(var m=0;m<12;m++){
+      bal=(bal+monthly)*(1+monthlyRate);
+      dep+=monthly;
+    }
+    rows.push({year:y,deposited:dep,interest:bal-dep,balance:bal});
+  }
+  return {final:bal,deposited:dep,interest:bal-dep,rows:rows};
+}
+function inr(n){
+  if(typeof n!=="number"||isNaN(n))return "-";
+  return "\u20B9"+Math.round(n).toLocaleString("en-IN");
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var ids=["p","c","r","y","f"];
+  function render(){
+    var P=parseFloat(document.getElementById("p").value)||0;
+    var C=parseFloat(document.getElementById("c").value)||0;
+    var R=parseFloat(document.getElementById("r").value);
+    var Y=parseFloat(document.getElementById("y").value);
+    var F=parseInt(document.getElementById("f").value,10);
+    if(isNaN(R)||isNaN(Y)||Y<=0){document.getElementById("fv").textContent="-";return;}
+    var r=compoundYearly(P,C,R,F,Y);
+    document.getElementById("fv").textContent=inr(r.final);
+    document.getElementById("dep").textContent=inr(r.deposited);
+    document.getElementById("int").textContent=inr(r.interest);
+    var html="";
+    r.rows.forEach(function(row){
+      html+="<tr><td>"+row.year+"</td><td>"+inr(row.deposited)+"</td><td>"+inr(row.interest)+"</td><td>"+inr(row.balance)+"</td></tr>";
+    });
+    document.getElementById("rows").innerHTML=html;
+  }
+  ids.forEach(function(id){
+    document.getElementById(id).addEventListener("input",render);
+    document.getElementById(id).addEventListener("change",render);
+  });
+  render();
+}
+</script>
+</body>
+</html>

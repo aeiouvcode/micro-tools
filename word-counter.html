@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Word Counter - Words, Characters, Sentences & Reading Time</title>
+<meta name="description" content="Free word counter: count words, characters, sentences and paragraphs instantly. Reading and speaking time included. Runs entirely in your browser - no uploads, no sign-up.">
+<meta name="theme-color" content="#f7f3ec">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f7f3ec;color:#2a2620;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#7a7264;font-size:.92rem;margin:4px 0 20px}
+  textarea{width:100%;min-height:200px;padding:14px;font-size:16px;font-family:inherit;color:#2a2620;background:#fffdf8;border:1px solid #e2d9c8;border-radius:12px;resize:vertical}
+  textarea:focus{outline:2px solid #b4552d;outline-offset:1px;border-color:#b4552d}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+  .stat{background:#fffdf8;border:1px solid #e2d9c8;border-radius:12px;padding:12px 8px;text-align:center}
+  .stat b{display:block;font-size:1.5rem;font-weight:700;color:#b4552d;font-variant-numeric:tabular-nums}
+  .stat span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7a7264}
+  .row{display:flex;gap:10px;margin-top:14px}
+  button{flex:1;min-height:48px;font-size:15px;font-weight:600;font-family:inherit;border-radius:12px;border:1px solid #d8ceba;background:#fffdf8;color:#5c5546;cursor:pointer}
+  button:active{transform:scale(.98)}
+  button.primary{background:#b4552d;border-color:#b4552d;color:#fff}
+  .about{margin-top:34px;font-size:.9rem;color:#5c5546}
+  .about h2{font-size:1.02rem;color:#2a2620;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a29a89;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Word Counter</h1>
+  <p class="sub">Paste or type below. Counts update as you type.</p>
+  <textarea id="t" placeholder="Start typing or paste your text here..." autofocus></textarea>
+  <div class="grid">
+    <div class="stat"><b id="words">0</b><span>Words</span></div>
+    <div class="stat"><b id="chars">0</b><span>Characters</span></div>
+    <div class="stat"><b id="nospaces">0</b><span>No spaces</span></div>
+    <div class="stat"><b id="sentences">0</b><span>Sentences</span></div>
+    <div class="stat"><b id="paras">0</b><span>Paragraphs</span></div>
+    <div class="stat"><b id="reading">0s</b><span>Reading time</span></div>
+  </div>
+  <div class="row">
+    <button class="primary" id="copy">Copy text</button>
+    <button id="clear">Clear</button>
+  </div>
+  <div class="about">
+    <h2>About this word counter</h2>
+    <p>Count words, characters (with and without spaces), sentences and paragraphs in real time. Reading time assumes 200 words per minute; use it for essays, articles, captions and scripts.</p>
+    <h2>Is my text uploaded anywhere?</h2>
+    <p>No. Every count happens on your device. Nothing is sent to a server, saved, or tracked - you can even use this page offline once loaded.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function countStats(text){
+  var words=(text.match(/[\p{L}\p{N}]+(?:['\u2019\-][\p{L}\p{N}]+)*/gu)||[]).length;
+  var chars=text.length;
+  var nospaces=(text.match(/\S/g)||[]).length;
+  var sentences=(text.match(/[^.!?\n]+[.!?]+(?=\s|$)|[^.!?\n]+$/gm)||[]).filter(function(s){return /[\p{L}\p{N}]/u.test(s)}).length;
+  var paras=text.split(/\n\s*\n/).filter(function(p){return /\S/.test(p)}).length;
+  var readSec=Math.round(words/200*60);
+  return {words:words,chars:chars,nospaces:nospaces,sentences:sentences,paras:paras,readSec:readSec};
+}
+function fmtTime(sec){
+  if(sec<60)return sec+"s";
+  var m=Math.floor(sec/60),s=sec%60;
+  return m+"m "+s+"s";
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var t=document.getElementById("t");
+  function render(){
+    var s=countStats(t.value);
+    document.getElementById("words").textContent=s.words;
+    document.getElementById("chars").textContent=s.chars;
+    document.getElementById("nospaces").textContent=s.nospaces;
+    document.getElementById("sentences").textContent=s.sentences;
+    document.getElementById("paras").textContent=s.paras;
+    document.getElementById("reading").textContent=fmtTime(s.readSec);
+  }
+  t.addEventListener("input",render);
+  document.getElementById("copy").addEventListener("click",function(){
+    navigator.clipboard&&navigator.clipboard.writeText(t.value);
+  });
+  document.getElementById("clear").addEventListener("click",function(){t.value="";render();t.focus();});
+  render();
+}
+</script>
+</body>
+</html>

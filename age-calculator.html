@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Age Calculator - Exact Age in Years, Months, Days</title>
+<meta name="description" content="Free age calculator: enter your date of birth to get your exact age in years, months and days, plus total days, weeks and a next-birthday countdown. No sign-up, works offline.">
+<meta name="theme-color" content="#faf5f3">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#faf5f3;color:#2b2320;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#7d6f68;font-size:.92rem;margin:4px 0 20px}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#7d6f68;margin:14px 0 5px}
+  input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#2b2320;background:#fff;border:1px solid #e3d6cf;border-radius:10px}
+  input:focus{outline:2px solid #c2564b;outline-offset:1px;border-color:#c2564b}
+  .hero{margin-top:18px;background:#fff;border:1px solid #e3d6cf;border-radius:14px;padding:18px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+  .hero b{display:block;font-size:2rem;font-weight:700;color:#c2564b;font-variant-numeric:tabular-nums}
+  .hero span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7d6f68}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cell{background:#fff;border:1px solid #e3d6cf;border-radius:12px;padding:12px;text-align:center}
+  .cell b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
+  .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7d6f68}
+  .bday{margin-top:12px;background:#c2564b;color:#fff;border-radius:12px;padding:14px;text-align:center;font-size:.98rem}
+  .about{margin-top:34px;font-size:.9rem;color:#5c514b}
+  .about h2{font-size:1.02rem;color:#2b2320;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#b3a49c;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Age Calculator</h1>
+  <p class="sub">Your exact age, down to the day.</p>
+  <label for="dob">Date of birth</label>
+  <input id="dob" type="date">
+  <label for="asof">Age at date (defaults to today)</label>
+  <input id="asof" type="date">
+  <div class="hero">
+    <div><b id="y">-</b><span>Years</span></div>
+    <div><b id="m">-</b><span>Months</span></div>
+    <div><b id="d">-</b><span>Days</span></div>
+  </div>
+  <div class="grid">
+    <div class="cell"><b id="tm">-</b><span>Total months</span></div>
+    <div class="cell"><b id="tw">-</b><span>Total weeks</span></div>
+    <div class="cell"><b id="td">-</b><span>Total days</span></div>
+    <div class="cell"><b id="th">-</b><span>Total hours</span></div>
+  </div>
+  <div class="bday" id="bday" style="display:none"></div>
+  <div class="about">
+    <h2>How exact age is counted</h2>
+    <p>Years and months roll over on your birthday's date each month, and days pick up the remainder - the same way age is counted on official forms. Totals are simple calendar differences.</p>
+    <h2>Private by design</h2>
+    <p>Your birth date never leaves this page. Everything is computed on your device, with no uploads and no tracking.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+function addClamped(date,years,months){
+  var y=date.getFullYear()+years,m=date.getMonth()+months;
+  y+=Math.floor(m/12);m=((m%12)+12)%12;
+  var d=Math.min(date.getDate(),daysInMonth(y,m));
+  return new Date(y,m,d);
+}
+function ageBetween(dob,asof){
+  if(!(dob instanceof Date)||isNaN(dob)||!(asof instanceof Date)||isNaN(asof))return null;
+  if(asof<dob)return null;
+  var y=asof.getFullYear()-dob.getFullYear();
+  var anchor=addClamped(dob,y,0);
+  if(anchor>asof){y--;anchor=addClamped(dob,y,0);}
+  var m=(asof.getFullYear()-anchor.getFullYear())*12+(asof.getMonth()-anchor.getMonth());
+  var a2=addClamped(anchor,0,m);
+  if(a2>asof){m--;a2=addClamped(anchor,0,m);}
+  var d=Math.round((asof-a2)/86400000);
+  var totalDays=Math.floor((Date.UTC(asof.getFullYear(),asof.getMonth(),asof.getDate())-Date.UTC(dob.getFullYear(),dob.getMonth(),dob.getDate()))/86400000);
+  return {years:y,months:m,days:d,totalDays:totalDays};
+}
+function nextBirthday(dob,asof){
+  var y=asof.getFullYear();
+  var nb=new Date(y,dob.getMonth(),dob.getDate());
+  if(nb<=asof)nb=new Date(y+1,dob.getMonth(),dob.getDate());
+  var days=Math.round((Date.UTC(nb.getFullYear(),nb.getMonth(),nb.getDate())-Date.UTC(asof.getFullYear(),asof.getMonth(),asof.getDate()))/86400000);
+  return {date:nb,days:days,turning:nb.getFullYear()-dob.getFullYear()};
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var dobEl=document.getElementById("dob"),asofEl=document.getElementById("asof");
+  function todayStr(){
+    var t=new Date();
+    return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+  }
+  asofEl.value=todayStr();
+  function render(){
+    var dob=dobEl.value?new Date(dobEl.value+"T00:00:00"):null;
+    var asof=asofEl.value?new Date(asofEl.value+"T00:00:00"):null;
+    var r=dob&&asof?ageBetween(dob,asof):null;
+    var bd=document.getElementById("bday");
+    if(!r){
+      ["y","m","d","tm","tw","td","th"].forEach(function(id){document.getElementById(id).textContent="-"});
+      bd.style.display="none";
+      return;
+    }
+    document.getElementById("y").textContent=r.years;
+    document.getElementById("m").textContent=r.months;
+    document.getElementById("d").textContent=r.days;
+    document.getElementById("tm").textContent=(r.years*12+r.months).toLocaleString("en-IN");
+    document.getElementById("tw").textContent=Math.floor(r.totalDays/7).toLocaleString("en-IN");
+    document.getElementById("td").textContent=r.totalDays.toLocaleString("en-IN");
+    document.getElementById("th").textContent=(r.totalDays*24).toLocaleString("en-IN");
+    var nb=nextBirthday(dob,asof);
+    bd.style.display="block";
+    bd.textContent="Next birthday: "+nb.date.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" - turning "+nb.turning+" in "+nb.days+" day"+(nb.days===1?"":"s");
+  }
+  dobEl.addEventListener("input",render);
+  asofEl.addEventListener("input",render);
+  render();
+}
+</script>
+</body>
+</html>

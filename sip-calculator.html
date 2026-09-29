@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIP Calculator - Mutual Fund SIP Returns & Growth</title>
+<meta name="description" content="Free SIP calculator: estimate your mutual fund SIP maturity value, total invested amount and gains, with year-wise growth. No sign-up, works offline, runs on your device.">
+<meta name="theme-color" content="#f8f6fa">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f8f6fa;color:#25222b;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#71697c;font-size:.92rem;margin:4px 0 20px}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#71697c;margin:14px 0 5px}
+  input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#25222b;background:#fff;border:1px solid #d9d2e0;border-radius:10px}
+  input:focus{outline:2px solid #7a4fa3;outline-offset:1px;border-color:#7a4fa3}
+  .hero{margin-top:18px;background:#7a4fa3;color:#fff;border-radius:14px;padding:20px;text-align:center}
+  .hero small{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+  .hero b{display:block;font-size:2.1rem;font-weight:700;font-variant-numeric:tabular-nums}
+  .split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .cell{background:#fff;border:1px solid #d9d2e0;border-radius:12px;padding:12px;text-align:center}
+  .cell b{display:block;font-size:1.2rem;font-variant-numeric:tabular-nums}
+  .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#71697c}
+  .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;margin-top:14px;background:#e9e3ee}
+  .bar i{display:block;height:100%}
+  .bar .p{background:#7a4fa3}
+  .bar .i{background:#3f7f6e}
+  .legend{display:flex;gap:16px;font-size:.78rem;color:#71697c;margin-top:6px}
+  .legend em{font-style:normal}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:.85rem;background:#fff;border-radius:12px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid #efeaf2;font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{background:#f0ebf4;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:#71697c}
+  .about{margin-top:34px;font-size:.9rem;color:#575061}
+  .about h2{font-size:1.02rem;color:#25222b;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a79fae;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SIP Calculator</h1>
+  <p class="sub">Monthly SIP, expected return, years. Results update as you type.</p>
+  <label for="p">Monthly investment (&#8377;)</label>
+  <input id="p" inputmode="decimal" value="10000">
+  <label for="r">Expected return (% per year)</label>
+  <input id="r" inputmode="decimal" value="12">
+  <label for="y">Time period (years)</label>
+  <input id="y" inputmode="decimal" value="10">
+  <div class="hero"><small>Estimated value</small><b id="fv">-</b></div>
+  <div class="split">
+    <div class="cell"><b id="inv">-</b><span>Invested</span></div>
+    <div class="cell"><b id="gain">-</b><span>Est. gains</span></div>
+  </div>
+  <div class="bar"><i class="p" id="barp" style="width:50%"></i><i class="i" id="bari" style="width:50%"></i></div>
+  <div class="legend"><em><i style="background:#7a4fa3"></i>Invested</em><em><i style="background:#3f7f6e"></i>Gains</em></div>
+  <div style="overflow-x:auto">
+  <table id="growth">
+    <thead><tr><th>Year</th><th>Invested</th><th>Value</th><th>Gains</th></tr></thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <div class="about">
+    <h2>How SIP returns are estimated</h2>
+    <p>Each monthly instalment compounds at the expected annual rate divided monthly. Future value = P &times; [((1+i)<sup>n</sup> &minus; 1) &divide; i] &times; (1+i), where i is the monthly rate and n the number of months.</p>
+    <h2>A note on expectations</h2>
+    <p>Market returns vary year to year; a flat rate is only an estimate. This tool does not account for expense ratios, exit loads or taxes. All math runs on your device - nothing is uploaded.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function sipFV(monthly,annualPct,years){
+  var i=annualPct/12/100,n=Math.round(years*12);
+  if(monthly<=0||n<=0)return NaN;
+  if(i===0)return monthly*n;
+  return monthly*((Math.pow(1+i,n)-1)/i)*(1+i);
+}
+function sipYearly(monthly,annualPct,years){
+  var rows=[];
+  for(var y=1;y<=Math.round(years);y++){
+    var v=sipFV(monthly,annualPct,y);
+    var inv=monthly*12*y;
+    rows.push({year:y,invested:inv,value:v,gains:v-inv});
+  }
+  return rows;
+}
+function inr(n){
+  if(typeof n!=="number"||isNaN(n))return "-";
+  return "\u20B9"+Math.round(n).toLocaleString("en-IN");
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var p=document.getElementById("p"),r=document.getElementById("r"),y=document.getElementById("y");
+  function render(){
+    var M=parseFloat(p.value),R=parseFloat(r.value),Y=parseFloat(y.value);
+    var fv=sipFV(M,R,Y);
+    if(isNaN(fv)){document.getElementById("fv").textContent="-";return;}
+    var inv=M*Math.round(Y*12),gain=fv-inv;
+    document.getElementById("fv").textContent=inr(fv);
+    document.getElementById("inv").textContent=inr(inv);
+    document.getElementById("gain").textContent=inr(gain);
+    var share=inv/fv*100;
+    document.getElementById("barp").style.width=share+"%";
+    document.getElementById("bari").style.width=(100-share)+"%";
+    var rows=sipYearly(M,R,Y),html="";
+    rows.forEach(function(row){
+      html+="<tr><td>"+row.year+"</td><td>"+inr(row.invested)+"</td><td>"+inr(row.value)+"</td><td>"+inr(row.gains)+"</td></tr>";
+    });
+    document.querySelector("#growth tbody").innerHTML=html;
+  }
+  p.addEventListener("input",render);
+  r.addEventListener("input",render);
+  y.addEventListener("input",render);
+  render();
+}
+</script>
+</body>
+</html>

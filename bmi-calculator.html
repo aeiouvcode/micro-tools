@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BMI Calculator - Body Mass Index with WHO & Indian Cutoffs</title>
+<meta name="description" content="Free BMI calculator with WHO and Indian/Asian category cutoffs, BMI Prime and your healthy weight range. Metric and imperial. No sign-up, runs on your device.">
+<meta name="theme-color" content="#f3f6f4">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f3f6f4;color:#212825;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#5f6f66;font-size:.92rem;margin:4px 0 20px}
+  .units{display:flex;gap:8px;margin-bottom:14px}
+  .units button{flex:1;min-height:42px;font-size:14px;font-weight:600;font-family:inherit;border-radius:999px;border:1px solid #cfd9d3;background:#fff;color:#4d5c53;cursor:pointer}
+  .units button.on{background:#5b7a99;border-color:#5b7a99;color:#fff}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5f6f66;margin:12px 0 5px}
+  input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#212825;background:#fff;border:1px solid #cfd9d3;border-radius:10px}
+  input:focus{outline:2px solid #5b7a99;outline-offset:1px;border-color:#5b7a99}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hero{margin-top:18px;background:#fff;border:1px solid #cfd9d3;border-radius:14px;padding:18px;text-align:center}
+  .hero b{font-size:2.2rem;font-weight:700;color:#5b7a99;font-variant-numeric:tabular-nums}
+  .hero span{display:block;font-size:.85rem;color:#4d5c53;margin-top:4px}
+  .scale{margin-top:14px}
+  .seg{height:12px;border-radius:6px;overflow:hidden;display:flex}
+  .seg i{display:block;height:100%}
+  .marker{position:relative;height:14px}
+  .marker i{position:absolute;top:0;width:3px;height:14px;background:#212825;border-radius:2px;margin-left:-1.5px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .cell{background:#fff;border:1px solid #cfd9d3;border-radius:12px;padding:12px;text-align:center}
+  .cell b{display:block;font-size:1.1rem;font-variant-numeric:tabular-nums}
+  .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#5f6f66}
+  .note{margin-top:12px;font-size:.82rem;color:#4d5c53}
+  .about{margin-top:34px;font-size:.9rem;color:#46554c}
+  .about h2{font-size:1.02rem;color:#212825;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#98a59c;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>BMI Calculator</h1>
+  <p class="sub">WHO and Indian cutoffs side by side - they differ, and it matters.</p>
+  <div class="units">
+    <button id="um" class="on">Metric (kg, cm)</button>
+    <button id="ui">Imperial (lb, ft/in)</button>
+  </div>
+  <div id="metric">
+    <label for="kg">Weight (kg)</label>
+    <input id="kg" inputmode="decimal" value="70">
+    <label for="cm">Height (cm)</label>
+    <input id="cm" inputmode="decimal" value="170">
+  </div>
+  <div id="imperial" style="display:none">
+    <label for="lb">Weight (lb)</label>
+    <input id="lb" inputmode="decimal" value="154">
+    <div class="pair">
+      <div><label for="ft">Height (ft)</label><input id="ft" inputmode="numeric" value="5"></div>
+      <div><label for="inch">Height (in)</label><input id="inch" inputmode="decimal" value="7"></div>
+    </div>
+  </div>
+  <div class="hero"><b id="bmi">-</b><span id="cat"></span></div>
+  <div class="scale">
+    <div class="seg"><i style="width:17%;background:#7ba3c4"></i><i style="width:25%;background:#8fae8b"></i><i style="width:17%;background:#d3a24b"></i><i style="width:41%;background:#b0584d"></i></div>
+    <div class="marker"><i id="mark" style="left:30%"></i></div>
+  </div>
+  <div class="grid">
+    <div class="cell"><b id="prime">-</b><span>BMI Prime</span></div>
+    <div class="cell"><b id="range">-</b><span>Healthy range</span></div>
+  </div>
+  <p class="note" id="asian"></p>
+  <div class="about">
+    <h2>Why two sets of cutoffs?</h2>
+    <p>WHO categories call 25+ overweight and 30+ obese. For South Asian bodies, health risks rise earlier, so Indian guidelines (MoHFW/consensus) flag 23+ as overweight and 27.5+ as obese. This tool shows both.</p>
+    <h2>What BMI Prime is</h2>
+    <p>BMI Prime is your BMI divided by 25 - the upper healthy bound. 1.00 is exactly the boundary, below 1 is under or inside the healthy zone. BMI is a screening number, not a diagnosis; it does not see muscle, bone or distribution.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function bmiValue(weightKg,heightM){
+  if(weightKg<=0||heightM<=0)return NaN;
+  return weightKg/(heightM*heightM);
+}
+function bmiCategory(b,asian){
+  if(isNaN(b))return "";
+  if(asian){
+    if(b<18.5)return "Underweight (Indian cutoffs)";
+    if(b<23)return "Healthy (Indian cutoffs)";
+    if(b<27.5)return "Overweight (Indian cutoffs)";
+    return "Obese (Indian cutoffs)";
+  }
+  if(b<18.5)return "Underweight (WHO)";
+  if(b<25)return "Healthy (WHO)";
+  if(b<30)return "Overweight (WHO)";
+  return "Obese (WHO)";
+}
+function healthyRangeKg(heightM){
+  return {low:18.5*heightM*heightM,high:24.99*heightM*heightM};
+}
+function markerPct(b){
+  if(isNaN(b))return 0;
+  var v=(b-10)/(40-10);
+  return Math.max(0,Math.min(1,v))*100;
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var metric=true;
+  var um=document.getElementById("um"),ui=document.getElementById("ui");
+  function inputs(){
+    if(metric){
+      return {kg:parseFloat(document.getElementById("kg").value),m:parseFloat(document.getElementById("cm").value)/100};
+    }
+    var lb=parseFloat(document.getElementById("lb").value);
+    var ft=parseFloat(document.getElementById("ft").value)||0;
+    var inch=parseFloat(document.getElementById("inch").value)||0;
+    return {kg:lb*0.45359237,m:(ft*12+inch)*0.0254};
+  }
+  function render(){
+    var inp=inputs();
+    var b=bmiValue(inp.kg,inp.m);
+    document.getElementById("bmi").textContent=isNaN(b)?"-":(Math.round(b*10)/10);
+    document.getElementById("cat").textContent=bmiCategory(b,false);
+    document.getElementById("prime").textContent=isNaN(b)?"-":(Math.round(b/25*100)/100);
+    var r=healthyRangeKg(inp.m);
+    document.getElementById("range").textContent=isNaN(b)?"-":(metric?(Math.round(r.low*10)/10+"-"+Math.round(r.high*10)/10+" kg"):(Math.round(r.low/0.45359237)+"-"+Math.round(r.high/0.45359237)+" lb"));
+    document.getElementById("asian").textContent=isNaN(b)?"":"By Indian cutoffs: "+bmiCategory(b,true)+".";
+    document.getElementById("mark").style.left=markerPct(b)+"%";
+  }
+  um.addEventListener("click",function(){metric=true;um.classList.add("on");ui.classList.remove("on");document.getElementById("metric").style.display="";document.getElementById("imperial").style.display="none";render();});
+  ui.addEventListener("click",function(){metric=false;ui.classList.add("on");um.classList.remove("on");document.getElementById("imperial").style.display="";document.getElementById("metric").style.display="none";render();});
+  ["kg","cm","lb","ft","inch"].forEach(function(id){document.getElementById(id).addEventListener("input",render);});
+  render();
+}
+</script>
+</body>
+</html>

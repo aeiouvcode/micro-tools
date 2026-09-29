@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSON Formatter & Validator - Beautify, Minify, Find Errors</title>
+<meta name="description" content="Free JSON formatter and validator: beautify, minify and validate JSON with exact error line and column. Runs entirely in your browser - your data never leaves the page.">
+<meta name="theme-color" content="#f5f5f4">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f5f5f4;color:#232323;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#6e6a63;font-size:.92rem;margin:4px 0 20px}
+  textarea{width:100%;min-height:170px;padding:14px;font-size:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#232323;background:#fff;border:1px solid #d6d3cd;border-radius:12px;resize:vertical;white-space:pre}
+  textarea:focus{outline:2px solid #b07d2a;outline-offset:1px;border-color:#b07d2a}
+  .row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+  button{flex:1;min-width:90px;min-height:46px;font-size:14px;font-weight:600;font-family:inherit;border-radius:10px;border:1px solid #d6d3cd;background:#fff;color:#4d4a44;cursor:pointer}
+  button:active{transform:scale(.98)}
+  button.primary{background:#b07d2a;border-color:#b07d2a;color:#fff}
+  .status{border-radius:10px;padding:10px 14px;font-size:.88rem;display:none;margin-bottom:12px}
+  .status.ok{display:block;background:#eef4ec;border:1px solid #cfe0cb;color:#3d5c3a}
+  .status.err{display:block;background:#f9eeea;border:1px solid #ecd3c8;color:#8a3b22;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre-wrap}
+  .meta{font-size:.78rem;color:#8a867e;margin-top:8px}
+  .about{margin-top:34px;font-size:.9rem;color:#4d4a44}
+  .about h2{font-size:1.02rem;color:#232323;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a09c94;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>JSON Formatter &amp; Validator</h1>
+  <p class="sub">Paste JSON, pick an action. Errors show the exact line and column.</p>
+  <textarea id="t" spellcheck="false" placeholder='{"paste":"your json here"}'></textarea>
+  <div class="row">
+    <button class="primary" id="fmt">Format</button>
+    <button id="min">Minify</button>
+    <button id="val">Validate</button>
+    <button id="copy">Copy</button>
+    <button id="clear">Clear</button>
+  </div>
+  <div class="status" id="status"></div>
+  <div class="meta" id="meta"></div>
+  <div class="about">
+    <h2>Why a private JSON tool?</h2>
+    <p>API responses and config files often contain tokens, emails or internal URLs. Most online formatters send your paste to a server. This one never does - parsing happens in your browser, on your device, and the page works offline.</p>
+    <h2>What the validator catches</h2>
+    <p>Trailing commas, unquoted keys, single quotes, missing brackets - the error message includes the line and column of the first problem so you can fix it fast.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function scanJSONError(text){
+  var i=0,n=text.length;
+  var numRe=/-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/y;
+  function ws(){while(i<n&&/\s/.test(text[i]))i++;}
+  function err(msg){return {index:i,message:msg};}
+  function parseValue(){
+    ws();
+    if(i>=n)return err("Unexpected end of input");
+    var c=text[i];
+    if(c==="{")return parseObject();
+    if(c==="[")return parseArray();
+    if(c==='"')return parseString();
+    if(c==="t")return lit("true");
+    if(c==="f")return lit("false");
+    if(c==="n")return lit("null");
+    numRe.lastIndex=i;
+    var m=numRe.exec(text);
+    if(!m)return err("Unexpected token");
+    i+=m[0].length;return null;
+  }
+  function lit(w){
+    if(text.substr(i,w.length)===w){i+=w.length;return null;}
+    return err("Unexpected token");
+  }
+  function parseString(){
+    i++;
+    while(i<n){
+      var c=text[i];
+      if(c==='"'){i++;return null;}
+      if(c==="\\"){i+=2;continue;}
+      if(c==="\n"||c==="\r")return err("Unterminated string");
+      i++;
+    }
+    return err("Unterminated string");
+  }
+  function parseObject(){
+    i++;ws();
+    if(text[i]==="}"){i++;return null;}
+    while(true){
+      ws();
+      if(text[i]!=='"')return err("Expected a string key");
+      var e=parseString();if(e)return e;
+      ws();
+      if(text[i]!==":")return err("Expected ':' after key");
+      i++;
+      e=parseValue();if(e)return e;
+      ws();
+      if(text[i]===","){i++;continue;}
+      if(text[i]==="}"){i++;return null;}
+      return err("Expected ',' or '}'");
+    }
+  }
+  function parseArray(){
+    i++;ws();
+    if(text[i]==="]"){i++;return null;}
+    while(true){
+      var e=parseValue();if(e)return e;
+      ws();
+      if(text[i]===","){i++;continue;}
+      if(text[i]==="]"){i++;return null;}
+      return err("Expected ',' or ']'");
+    }
+  }
+  var e=parseValue();
+  if(e)return e;
+  ws();
+  if(i<n)return err("Unexpected trailing content");
+  return null;
+}
+function errorLocation(text,err){
+  var se=scanJSONError(text);
+  if(!se)return null;
+  var upto=text.slice(0,se.index);
+  var line=(upto.match(/\n/g)||[]).length+1;
+  var col=se.index-upto.lastIndexOf("\n");
+  return {line:line,col:col,pos:se.index,msg:se.message};
+}
+function parseJSON(text){
+  try{
+    return {ok:true,value:JSON.parse(text)};
+  }catch(e){
+    var loc=errorLocation(text,e);
+    var msg=loc&&loc.msg?loc.msg:(e.message||String(e));
+    return {ok:false,error:msg,loc:loc};
+  }
+}
+function byteSize(s){return new Blob([s]).size;}
+if(typeof document!=="undefined"&&document.getElementById){
+  var t=document.getElementById("t"),st=document.getElementById("status"),meta=document.getElementById("meta");
+  function show(ok,msg){
+    st.className="status "+(ok?"ok":"err");
+    st.textContent=msg;
+  }
+  function updateMeta(){
+    var s=t.value;
+    meta.textContent=s?(byteSize(s)+" bytes, "+s.length+" characters"):"";
+  }
+  function act(op){
+    var s=t.value.trim();
+    if(!s){show(false,"Nothing to "+op+" - paste some JSON first.");return;}
+    var r=parseJSON(s);
+    if(!r.ok){
+      var loc=r.loc?(" (line "+r.loc.line+", column "+r.loc.col+")"):"";
+      show(false,"Invalid JSON: "+r.error+loc);
+      return;
+    }
+    if(op==="format"){t.value=JSON.stringify(r.value,null,2);show(true,"Valid JSON - formatted.");}
+    else if(op==="minify"){t.value=JSON.stringify(r.value);show(true,"Valid JSON - minified.");}
+    else{show(true,"Valid JSON.");}
+    updateMeta();
+  }
+  document.getElementById("fmt").addEventListener("click",function(){act("format")});
+  document.getElementById("min").addEventListener("click",function(){act("minify")});
+  document.getElementById("val").addEventListener("click",function(){act("validate")});
+  document.getElementById("copy").addEventListener("click",function(){navigator.clipboard&&navigator.clipboard.writeText(t.value)});
+  document.getElementById("clear").addEventListener("click",function(){t.value="";st.className="status";st.textContent="";updateMeta();t.focus()});
+  t.addEventListener("input",updateMeta);
+}
+</script>
+</body>
+</html>

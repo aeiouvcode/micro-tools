@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Percentage Calculator - Percent Of, Change & Increase/Decrease</title>
+<meta name="description" content="Free percentage calculator: find X% of Y, what percent one number is of another, percentage change, and percent increase or decrease. Instant answers, works offline, no sign-up.">
+<meta name="theme-color" content="#f4f6fa">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f4f6fa;color:#1f2430;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#6d7484;font-size:.92rem;margin:4px 0 20px}
+  .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:18px}
+  .modes button{min-height:46px;font-size:13.5px;font-weight:600;font-family:inherit;border-radius:10px;border:1px solid #ccd4e2;background:#fff;color:#4a5164;cursor:pointer;padding:6px}
+  .modes button.on{background:#3b5bdb;border-color:#3b5bdb;color:#fff}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#6d7484;margin:14px 0 5px}
+  input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#1f2430;background:#fff;border:1px solid #ccd4e2;border-radius:10px}
+  input:focus{outline:2px solid #3b5bdb;outline-offset:1px;border-color:#3b5bdb}
+  .sentence{font-size:1.02rem;color:#4a5164;padding:14px 0 0}
+  .result{margin-top:18px;background:#fff;border:1px solid #ccd4e2;border-radius:12px;padding:18px;text-align:center;min-height:76px}
+  .result b{font-size:1.9rem;font-weight:700;color:#3b5bdb;font-variant-numeric:tabular-nums}
+  .result span{display:block;font-size:.8rem;color:#6d7484;margin-top:2px}
+  .about{margin-top:34px;font-size:.9rem;color:#4a5164}
+  .about h2{font-size:1.02rem;color:#1f2430;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#9aa1b1;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Percentage Calculator</h1>
+  <p class="sub">Pick a mode, enter two numbers, get the answer instantly.</p>
+  <div class="modes">
+    <button data-m="of" class="on">X% of Y</button>
+    <button data-m="what">X is what % of Y</button>
+    <button data-m="change">% change X &rarr; Y</button>
+    <button data-m="adjust">Y increased by X%</button>
+  </div>
+  <label id="la" for="a">Percent (X)</label>
+  <input id="a" inputmode="decimal" value="25">
+  <label id="lb" for="b">Value (Y)</label>
+  <input id="b" inputmode="decimal" value="200">
+  <p class="sentence" id="sentence"></p>
+  <div class="result"><b id="out">50</b><span id="outsub"></span></div>
+  <div class="about">
+    <h2>How the percentage formulas work</h2>
+    <p>X% of Y = X &times; Y &divide; 100. To find what percent X is of Y: X &divide; Y &times; 100. Percentage change = (new &minus; old) &divide; old &times; 100. To increase a value by X%: value &times; (1 + X &divide; 100).</p>
+    <h2>Common uses</h2>
+    <p>Discounts while shopping, GST and tip amounts, exam score percentages, profit margins, and price changes. All math runs on your device - nothing is uploaded or stored.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function round2(n){
+  if(!isFinite(n))return NaN;
+  return Math.round((n+Number.EPSILON)*10000)/10000;
+}
+function calc(mode,x,y){
+  switch(mode){
+    case "of":return {v:round2(x*y/100),sub:x+"% of "+y};
+    case "what":return {v:round2(y===0?NaN:x/y*100),sub:x+" as a percentage of "+y,suffix:"%"};
+    case "change":return {v:round2(x===0?NaN:(y-x)/Math.abs(x)*100),sub:"change from "+x+" to "+y,suffix:"%"};
+    case "adjust":return {v:round2(y*(1+x/100)),sub:y+" increased by "+x+"%"};
+  }
+  return {v:NaN,sub:""};
+}
+function fmt(n){
+  if(typeof n!=="number"||isNaN(n))return "-";
+  return String(n);
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var mode="of";
+  var a=document.getElementById("a"),b=document.getElementById("b");
+  var labels={
+    of:["Percent (X)","Value (Y)"],
+    what:["Part (X)","Whole (Y)"],
+    change:["Old value (X)","New value (Y)"],
+    adjust:["Percent (X)","Value (Y)"]
+  };
+  var sentences={
+    of:"What is X% of Y?",
+    what:"X is what percent of Y?",
+    change:"Percentage increase or decrease from X to Y",
+    adjust:"Increase Y by X% (use a negative % to decrease)"
+  };
+  function render(){
+    var x=parseFloat(a.value),y=parseFloat(b.value);
+    var r=calc(mode,x,y);
+    document.getElementById("out").textContent=fmt(r.v)+(r.suffix&&!isNaN(r.v)?r.suffix:"");
+    document.getElementById("outsub").textContent=isNaN(x)||isNaN(y)?"Enter both numbers":r.sub;
+    document.getElementById("sentence").textContent=sentences[mode];
+    document.getElementById("la").textContent=labels[mode][0];
+    document.getElementById("lb").textContent=labels[mode][1];
+  }
+  var btns=document.querySelectorAll(".modes button");
+  btns.forEach(function(btn){
+    btn.addEventListener("click",function(){
+      btns.forEach(function(x){x.classList.remove("on")});
+      btn.classList.add("on");
+      mode=btn.getAttribute("data-m");
+      render();
+    });
+  });
+  a.addEventListener("input",render);
+  b.addEventListener("input",render);
+  render();
+}
+</script>
+</body>
+</html>

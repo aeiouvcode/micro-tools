@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit Converter - Length, Weight, Temperature, Data & More</title>
+<meta name="description" content="Free unit converter for length, weight, temperature, volume, area, speed, time, digital data (SI and IEC) and pressure. Exact conversions, instant results, works offline.">
+<meta name="theme-color" content="#f7f4ee">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f7f4ee;color:#29241f;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#776c5e;font-size:.92rem;margin:4px 0 20px}
+  .cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .cats button{min-height:40px;padding:0 14px;font-size:13px;font-weight:600;font-family:inherit;border-radius:999px;border:1px solid #ddd2c2;background:#fff;color:#5c5347;cursor:pointer}
+  .cats button.on{background:#7b4b2a;border-color:#7b4b2a;color:#fff}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#776c5e;margin:12px 0 5px}
+  input,select{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#29241f;background:#fff;border:1px solid #ddd2c2;border-radius:10px}
+  input:focus,select:focus{outline:2px solid #7b4b2a;outline-offset:1px;border-color:#7b4b2a}
+  .swap{display:block;margin:10px auto;min-height:40px;padding:0 18px;font-size:14px;font-weight:600;font-family:inherit;border-radius:999px;border:1px solid #ddd2c2;background:#fff;color:#7b4b2a;cursor:pointer}
+  .result{margin-top:16px;background:#fff;border:1px solid #ddd2c2;border-radius:12px;padding:18px;text-align:center}
+  .result b{font-size:1.7rem;font-weight:700;color:#7b4b2a;font-variant-numeric:tabular-nums;word-break:break-all}
+  .result span{display:block;font-size:.8rem;color:#776c5e;margin-top:2px}
+  .about{margin-top:34px;font-size:.9rem;color:#5c5347}
+  .about h2{font-size:1.02rem;color:#29241f;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a99d8d;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Unit Converter</h1>
+  <p class="sub">Nine categories, exact factors, results as you type.</p>
+  <div class="cats" id="cats"></div>
+  <label for="val">Value</label>
+  <input id="val" inputmode="decimal" value="1">
+  <label for="from">From</label>
+  <select id="from"></select>
+  <button class="swap" id="swap">Swap units</button>
+  <label for="to">To</label>
+  <select id="to"></select>
+  <div class="result"><b id="out">-</b><span id="outsub"></span></div>
+  <div class="about">
+    <h2>SI vs IEC data units</h2>
+    <p>Storage makers use SI units (1 KB = 1000 bytes); operating systems often display IEC units (1 KiB = 1024 bytes). This converter keeps both families separate and exact - the difference is why a "500 GB" drive shows about "465 GiB".</p>
+    <h2>How conversions are computed</h2>
+    <p>Every unit converts through an exact base-unit factor (metre, gram, second, byte...). Temperature uses the proper offset formulas rather than naive multiplication. All math runs on your device.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+var CATS={
+  length:{name:"Length",base:"m",units:{mm:0.001,cm:0.01,m:1,km:1000,"in":0.0254,ft:0.3048,yd:0.9144,mi:1609.344,nmi:1852}},
+  mass:{name:"Weight",base:"kg",units:{mg:0.000001,g:0.001,kg:1,t:1000,oz:0.028349523125,lb:0.45359237,stone:6.35029318}},
+  temperature:{name:"Temperature",special:true,units:{C:"Celsius",F:"Fahrenheit",K:"Kelvin"}},
+  volume:{name:"Volume",base:"l",units:{ml:0.001,l:1,m3:1000,tsp:0.00492892159375,tbsp:0.01478676478125,cup:0.2365882365,floz:0.0295735295625,pt:0.473176473,qt:0.946352946,gal:3.785411784}},
+  area:{name:"Area",base:"m2",units:{cm2:0.0001,m2:1,ha:10000,km2:1000000,sqft:0.09290304,sqyd:0.83612736,acre:4046.8564224,sqmi:2589988.110336}},
+  speed:{name:"Speed",base:"m/s",units:{"m/s":1,"km/h":1/3.6,mph:0.44704,kn:0.514444444444444,"ft/s":0.3048}},
+  time:{name:"Time",base:"s",units:{ms:0.001,s:1,min:60,h:3600,day:86400,week:604800,month:2629800,year:31557600}},
+  data:{name:"Data",base:"B",units:{bit:0.125,B:1,KB:1000,MB:1e6,GB:1e9,TB:1e12,KiB:1024,MiB:1048576,GiB:1073741824,TiB:1099511627776}},
+  pressure:{name:"Pressure",base:"Pa",units:{Pa:1,kPa:1000,bar:100000,atm:101325,psi:6894.757293168,mmHg:133.322387415}}
+};
+function convert(cat,value,from,to){
+  if(isNaN(value))return NaN;
+  if(cat==="temperature"){
+    var c;
+    if(from==="C")c=value;
+    else if(from==="F")c=(value-32)*5/9;
+    else c=value-273.15;
+    if(to==="C")return c;
+    if(to==="F")return c*9/5+32;
+    return c+273.15;
+  }
+  var u=CATS[cat].units;
+  return value*u[from]/u[to];
+}
+function fmt(n){
+  if(typeof n!=="number"||isNaN(n))return "-";
+  if(n===0)return "0";
+  var a=Math.abs(n);
+  if(a>=1e15||a<1e-9)return n.toExponential(6);
+  return String(parseFloat(n.toPrecision(10)));
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var cat="length";
+  var catsEl=document.getElementById("cats"),from=document.getElementById("from"),to=document.getElementById("to"),val=document.getElementById("val");
+  Object.keys(CATS).forEach(function(k){
+    var b=document.createElement("button");
+    b.textContent=CATS[k].name;b.dataset.k=k;
+    if(k===cat)b.classList.add("on");
+    b.addEventListener("click",function(){
+      cat=k;
+      catsEl.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x.dataset.k===k)});
+      fillUnits();render();
+    });
+    catsEl.appendChild(b);
+  });
+  function fillUnits(){
+    var keys=Object.keys(CATS[cat].units);
+    from.innerHTML="";to.innerHTML="";
+    keys.forEach(function(k,i){
+      from.add(new Option(k,k));
+      to.add(new Option(k,k));
+    });
+    to.selectedIndex=Math.min(2,keys.length-1);
+  }
+  function render(){
+    var v=parseFloat(val.value);
+    var r=convert(cat,v,from.value,to.value);
+    document.getElementById("out").textContent=fmt(r);
+    document.getElementById("outsub").textContent=isNaN(v)?"Enter a value":(fmt(v)+" "+from.value+" =");
+  }
+  document.getElementById("swap").addEventListener("click",function(){
+    var f=from.value;from.value=to.value;to.value=f;render();
+  });
+  val.addEventListener("input",render);
+  from.addEventListener("change",render);
+  to.addEventListener("change",render);
+  fillUnits();render();
+}
+</script>
+</body>
+</html>

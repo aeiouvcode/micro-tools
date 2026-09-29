@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Base64 Encode & Decode - Unicode-Safe, URL-Safe Variants</title>
+<meta name="description" content="Free Base64 encoder and decoder that handles Unicode correctly (no mojibake) with standard and URL-safe variants. Instant, private - everything runs in your browser.">
+<meta name="theme-color" content="#f5f6f4">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-text-size-adjust:100%}
+  body{font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f5f6f4;color:#242824;line-height:1.55;min-height:100vh}
+  .wrap{max-width:680px;margin:0 auto;padding:28px 18px 48px}
+  h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
+  .sub{color:#5f6a60;font-size:.92rem;margin:4px 0 20px}
+  label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5f6a60;margin:14px 0 5px}
+  textarea{width:100%;min-height:130px;padding:14px;font-size:14px;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#242824;background:#fff;border:1px solid #d2d8d0;border-radius:12px;resize:vertical;white-space:pre-wrap}
+  textarea:focus{outline:2px solid #555f6e;outline-offset:1px;border-color:#555f6e}
+  .row{display:flex;gap:8px;margin:12px 0;flex-wrap:wrap}
+  button{flex:1;min-width:100px;min-height:46px;font-size:14px;font-weight:600;font-family:inherit;border-radius:10px;border:1px solid #d2d8d0;background:#fff;color:#4a534a;cursor:pointer}
+  button:active{transform:scale(.98)}
+  button.primary{background:#555f6e;border-color:#555f6e;color:#fff}
+  .opt{display:flex;align-items:center;gap:10px;font-size:.9rem;color:#4a534a;margin:4px 0}
+  .opt input{width:20px;height:20px;accent-color:#555f6e}
+  .status{border-radius:10px;padding:10px 14px;font-size:.88rem;display:none;margin-bottom:12px}
+  .status.ok{display:block;background:#eef3ee;border:1px solid #cfdccd;color:#3d5a40}
+  .status.err{display:block;background:#f9eeea;border:1px solid #ecd3c8;color:#8a3b22}
+  .meta{font-size:.78rem;color:#87917f;margin-top:6px}
+  .about{margin-top:34px;font-size:.9rem;color:#4a534a}
+  .about h2{font-size:1.02rem;color:#242824;margin:18px 0 6px}
+  footer{margin-top:30px;font-size:.78rem;color:#a0a89e;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Base64 Encode &amp; Decode</h1>
+  <p class="sub">Unicode-safe - Hindi, emoji and Chinese survive the round trip.</p>
+  <label for="inp">Input</label>
+  <textarea id="inp" spellcheck="false" placeholder="Type or paste text or Base64 here..."></textarea>
+  <div class="row">
+    <button class="primary" id="enc">Encode &rarr; Base64</button>
+    <button id="dec">Decode &larr; Base64</button>
+    <button id="copy">Copy output</button>
+    <button id="swap">Swap</button>
+  </div>
+  <label class="opt"><input type="checkbox" id="urlsafe"> URL-safe alphabet (- and _ instead of + and /)</label>
+  <div class="status" id="status"></div>
+  <label for="out">Output</label>
+  <textarea id="out" readonly></textarea>
+  <div class="meta" id="meta"></div>
+  <div class="about">
+    <h2>Why most Base64 tools break on non-English text</h2>
+    <p>The browser's legacy btoa() only accepts byte-sized characters, so pasting Hindi or emoji into most online tools throws an error or silently corrupts. This tool encodes through UTF-8 first, so any text survives: paste it, encode, decode, get it back exactly.</p>
+    <h2>What URL-safe means</h2>
+    <p>Standard Base64 uses + and /, which need escaping inside URLs and filenames. The URL-safe variant swaps them for - and _ (RFC 4648 section 5) - use it for tokens and query parameters. All processing happens on your device.</p>
+  </div>
+  <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
+</div>
+<script>
+function bytesToBinary(bytes){
+  var s="";
+  var CH=8192;
+  for(var i=0;i<bytes.length;i+=CH)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+CH));
+  return s;
+}
+function b64encode(text,urlsafe){
+  var bytes=new TextEncoder().encode(text);
+  var b=btoa(bytesToBinary(bytes));
+  return urlsafe?b.replace(/\+/g,"-").replace(/\//g,"_"):b;
+}
+function b64decode(text,urlsafe){
+  var clean=text.replace(/\s+/g,"");
+  if(urlsafe)clean=clean.replace(/-/g,"+").replace(/_/g,"/");
+  if(!/^[A-Za-z0-9+/]*={0,2}$/.test(clean))return {ok:false,error:"Input contains characters that are not valid Base64."};
+  if(clean.length%4===1)return {ok:false,error:"Invalid Base64 length."};
+  try{
+    var bin=atob(clean);
+    var bytes=new Uint8Array(bin.length);
+    for(var i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    return {ok:true,value:new TextDecoder("utf-8",{fatal:false}).decode(bytes)};
+  }catch(e){
+    return {ok:false,error:e.message||String(e)};
+  }
+}
+if(typeof document!=="undefined"&&document.getElementById){
+  var inp=document.getElementById("inp"),out=document.getElementById("out"),st=document.getElementById("status"),us=document.getElementById("urlsafe");
+  function show(ok,msg){
+    st.className="status "+(ok?"ok":"err");
+    st.textContent=msg;
+  }
+  function meta(){
+    var b=new TextEncoder().encode(out.value).length;
+    document.getElementById("meta").textContent=out.value?(out.value.length+" characters, "+b+" UTF-8 bytes"):"";
+  }
+  document.getElementById("enc").addEventListener("click",function(){
+    if(!inp.value){show(false,"Nothing to encode.");return;}
+    out.value=b64encode(inp.value,us.checked);
+    show(true,"Encoded.");
+    meta();
+  });
+  document.getElementById("dec").addEventListener("click",function(){
+    if(!inp.value.trim()){show(false,"Nothing to decode.");return;}
+    var r=b64decode(inp.value,us.checked);
+    if(!r.ok){show(false,"Decode failed: "+r.error);out.value="";meta();return;}
+    out.value=r.value;
+    show(true,"Decoded.");
+    meta();
+  });
+  document.getElementById("copy").addEventListener("click",function(){navigator.clipboard&&navigator.clipboard.writeText(out.value)});
+  document.getElementById("swap").addEventListener("click",function(){var t=inp.value;inp.value=out.value;out.value=t;st.className="status";st.textContent="";meta();});
+}
+</script>
+</body>
+</html>
