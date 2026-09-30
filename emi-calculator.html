@@ -37,28 +37,28 @@
   .about{margin-top:34px;font-size:.9rem;color:#54504a}
   .about h2{font-size:1.02rem;color:#23262b;margin:18px 0 6px}
   footer{margin-top:30px;font-size:.78rem;color:#a39e93;text-align:center}
-</style>
+table{min-width:420px}.wrap{box-sizing:border-box;width:min(100%,680px)}input,select{min-width:0;box-sizing:border-box}.cell{min-width:0}.cell b{overflow-wrap:anywhere}@media(max-width:340px){.split{grid-template-columns:1fr}.cell b{font-size:1.25rem}}</style>
 </head>
 <body>
 <div class="wrap">
   <h1>EMI Calculator</h1>
   <p class="sub">Home, car or personal loan. Results update as you type.</p>
   <label for="p">Loan amount (&#8377;)</label>
-  <input id="p" inputmode="decimal" value="1000000">
+  <input id="p" aria-describedby="err" inputmode="decimal" value="1000000">
   <label for="r">Interest rate (% per year)</label>
-  <input id="r" inputmode="decimal" value="9">
-  <label for="y">Tenure (years)</label>
-  <input id="y" inputmode="decimal" value="10">
-  <div class="hero"><small>Monthly EMI</small><b id="emi">-</b></div>
+  <input id="r" aria-describedby="err" inputmode="decimal" value="9">
+  <label for="y">Tenure (years, whole months)</label>
+  <input id="y" aria-describedby="err" inputmode="decimal" value="10">
+  <p id="err" role="status" style="color:#9a2929;min-height:24px;font-size:.9rem"></p><div class="hero"><small>Monthly EMI</small><b id="emi">-</b></div>
   <div class="split">
     <div class="cell"><b id="tp">-</b><span>Principal</span></div>
     <div class="cell"><b id="ti">-</b><span>Total interest</span></div>
   </div>
   <div class="bar"><i class="p" id="barp" style="width:60%"></i><i class="i" id="bari" style="width:40%"></i></div>
   <div class="legend"><em><i style="background:#1f3a5f"></i>Principal</em><em><i style="background:#c98a2b"></i>Interest</em></div>
-  <div style="overflow-x:auto">
+  <p style="font-size:.85rem">Swipe the table sideways on small screens to see every column.</p><div style="overflow-x:auto;max-width:100%" tabindex="0" role="region" aria-label="sched schedule">
   <table id="sched">
-    <thead><tr><th>Year</th><th>Principal paid</th><th>Interest paid</th><th>Balance</th></tr></thead>
+    <thead><tr><th>Month</th><th>Principal paid</th><th>Interest paid</th><th>Balance</th></tr></thead>
     <tbody></tbody>
   </table>
   </div>
@@ -75,8 +75,7 @@ function emiMonthly(P,annualPct,years){
   var r=annualPct/12/100,n=Math.round(years*12);
   if(P<=0||n<=0)return NaN;
   if(r===0)return P/n;
-  var f=Math.pow(1+r,n);
-  return P*r*f/(f-1);
+  return P*r/(-Math.expm1(-n*Math.log1p(r)));
 }
 function amortizeYearly(P,annualPct,years){
   var r=annualPct/12/100,n=Math.round(years*12),e=emiMonthly(P,annualPct,years);
@@ -85,11 +84,11 @@ function amortizeYearly(P,annualPct,years){
     var pY=0,iY=0,lim=Math.min(m+11,n);
     for(;m<=lim;m++){
       var interest=bal*r;
-      var principal=e-interest;
+      var principal=m===n?bal:Math.min(bal,e-interest);
       bal-=principal;
       pY+=principal;iY+=interest;
     }
-    rows.push({year:rows.length+1,principal:pY,interest:iY,balance:Math.max(0,bal)});
+    rows.push({year:(m-1)/12,principal:pY,interest:iY,balance:Math.max(0,bal)});
   }
   return rows;
 }
@@ -100,9 +99,14 @@ function inr(n){
 if(typeof document!=="undefined"&&document.getElementById){
   var p=document.getElementById("p"),r=document.getElementById("r"),y=document.getElementById("y");
   function render(){
-    var P=parseFloat(p.value),R=parseFloat(r.value),Y=parseFloat(y.value);
+    ['emi', 'tp', 'ti'].forEach(id=>document.getElementById(id).textContent='-');
+    document.getElementById('barp').style.width='0%';document.getElementById('bari').style.width='0%';
+    document.querySelector('#sched tbody').replaceChildren();
+    document.getElementById('err').textContent='';
+    var P=Number(p.value),R=Number(r.value),Y=Number(y.value);
+    if([p,r,y].some(el=>!el.value.trim())||![P,R,Y].every(Number.isFinite)||P<=0||P>1e12||R<0||R>100||Y<=0||Y>100||Math.abs(Y*12-Math.round(Y*12))>1e-7||Math.round(Y*12)<1){document.getElementById('err').textContent='Use a positive amount up to 1 trillion, a 0–100% rate and 1–1200 whole months (for example 1.5 years = 18 months).';return;}
     var e=emiMonthly(P,R,Y);
-    if(isNaN(e)){document.getElementById("emi").textContent="-";return;}
+    if(!Number.isFinite(e)){document.getElementById('err').textContent='Result too large or too small to calculate. Check amount, rate and duration.';return;}
     var n=Math.round(Y*12),total=e*n,ti=total-P;
     document.getElementById("emi").textContent=inr(e);
     document.getElementById("tp").textContent=inr(P);
@@ -113,7 +117,7 @@ if(typeof document!=="undefined"&&document.getElementById){
     var rows=amortizeYearly(P,R,Y);
     var html="";
     rows.forEach(function(row){
-      html+="<tr><td>"+row.year+"</td><td>"+inr(row.principal)+"</td><td>"+inr(row.interest)+"</td><td>"+inr(row.balance)+"</td></tr>";
+      html+="<tr><td>"+Math.round(row.year*12)+"</td><td>"+inr(row.principal)+"</td><td>"+inr(row.interest)+"</td><td>"+inr(row.balance)+"</td></tr>";
     });
     document.querySelector("#sched tbody").innerHTML=html;
   }

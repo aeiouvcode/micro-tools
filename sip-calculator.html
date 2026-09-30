@@ -37,28 +37,28 @@
   .about{margin-top:34px;font-size:.9rem;color:#575061}
   .about h2{font-size:1.02rem;color:#25222b;margin:18px 0 6px}
   footer{margin-top:30px;font-size:.78rem;color:#a79fae;text-align:center}
-</style>
+table{min-width:420px}.wrap{box-sizing:border-box;width:min(100%,680px)}input,select{min-width:0;box-sizing:border-box}.cell{min-width:0}.cell b{overflow-wrap:anywhere}@media(max-width:340px){.split{grid-template-columns:1fr}.cell b{font-size:1.25rem}}</style>
 </head>
 <body>
 <div class="wrap">
   <h1>SIP Calculator</h1>
   <p class="sub">Monthly SIP, expected return, years. Results update as you type.</p>
   <label for="p">Monthly investment (&#8377;)</label>
-  <input id="p" inputmode="decimal" value="10000">
+  <input id="p" aria-describedby="err" inputmode="decimal" value="10000">
   <label for="r">Expected return (% per year)</label>
-  <input id="r" inputmode="decimal" value="12">
-  <label for="y">Time period (years)</label>
-  <input id="y" inputmode="decimal" value="10">
-  <div class="hero"><small>Estimated value</small><b id="fv">-</b></div>
+  <input id="r" aria-describedby="err" inputmode="decimal" value="12">
+  <label for="y">Time period (years, whole months)</label>
+  <input id="y" aria-describedby="err" inputmode="decimal" value="10">
+  <p id="err" role="status" style="color:#9a2929;min-height:24px;font-size:.9rem"></p><div class="hero"><small>Estimated value</small><b id="fv">-</b></div>
   <div class="split">
     <div class="cell"><b id="inv">-</b><span>Invested</span></div>
     <div class="cell"><b id="gain">-</b><span>Est. gains</span></div>
   </div>
   <div class="bar"><i class="p" id="barp" style="width:50%"></i><i class="i" id="bari" style="width:50%"></i></div>
   <div class="legend"><em><i style="background:#7a4fa3"></i>Invested</em><em><i style="background:#3f7f6e"></i>Gains</em></div>
-  <div style="overflow-x:auto">
+  <p style="font-size:.85rem">Swipe the table sideways on small screens to see every column.</p><div style="overflow-x:auto;max-width:100%" tabindex="0" role="region" aria-label="growth schedule">
   <table id="growth">
-    <thead><tr><th>Year</th><th>Invested</th><th>Value</th><th>Gains</th></tr></thead>
+    <thead><tr><th>Month</th><th>Invested</th><th>Value</th><th>Gains</th></tr></thead>
     <tbody></tbody>
   </table>
   </div>
@@ -75,17 +75,9 @@ function sipFV(monthly,annualPct,years){
   var i=annualPct/12/100,n=Math.round(years*12);
   if(monthly<=0||n<=0)return NaN;
   if(i===0)return monthly*n;
-  return monthly*((Math.pow(1+i,n)-1)/i)*(1+i);
+  return monthly*((Math.expm1(n*Math.log1p(i)))/i)*(1+i);
 }
-function sipYearly(monthly,annualPct,years){
-  var rows=[];
-  for(var y=1;y<=Math.round(years);y++){
-    var v=sipFV(monthly,annualPct,y);
-    var inv=monthly*12*y;
-    rows.push({year:y,invested:inv,value:v,gains:v-inv});
-  }
-  return rows;
-}
+function sipYearly(monthly,annualPct,years){var rows=[],n=Math.round(years*12);for(var month=12;month<n;month+=12){var value=sipFV(monthly,annualPct,month/12),inv=monthly*month;rows.push({year:month/12,invested:inv,value:value,gains:value-inv})}var value=sipFV(monthly,annualPct,n/12),inv=monthly*n;rows.push({year:n/12,invested:inv,value:value,gains:value-inv});return rows;}
 function inr(n){
   if(typeof n!=="number"||isNaN(n))return "-";
   return "\u20B9"+Math.round(n).toLocaleString("en-IN");
@@ -93,9 +85,14 @@ function inr(n){
 if(typeof document!=="undefined"&&document.getElementById){
   var p=document.getElementById("p"),r=document.getElementById("r"),y=document.getElementById("y");
   function render(){
-    var M=parseFloat(p.value),R=parseFloat(r.value),Y=parseFloat(y.value);
+    ['fv', 'inv', 'gain'].forEach(id=>document.getElementById(id).textContent='-');
+    document.getElementById('barp').style.width='0%';document.getElementById('bari').style.width='0%';
+    document.querySelector('#growth tbody').replaceChildren();
+    document.getElementById('err').textContent='';
+    var M=Number(p.value),R=Number(r.value),Y=Number(y.value);
+    if([p,r,y].some(el=>!el.value.trim())||![M,R,Y].every(Number.isFinite)||M<=0||M>1e12||R<0||R>100||Y<=0||Y>100||Math.abs(Y*12-Math.round(Y*12))>1e-7||Math.round(Y*12)<1){document.getElementById('err').textContent='Use a positive amount up to 1 trillion, a 0–100% rate and 1–1200 whole months (for example 1.5 years = 18 months).';return;}
     var fv=sipFV(M,R,Y);
-    if(isNaN(fv)){document.getElementById("fv").textContent="-";return;}
+    if(!Number.isFinite(fv)){document.getElementById('err').textContent='Result too large or too small to calculate. Check amount, rate and duration.';return;}
     var inv=M*Math.round(Y*12),gain=fv-inv;
     document.getElementById("fv").textContent=inr(fv);
     document.getElementById("inv").textContent=inr(inv);
@@ -105,7 +102,7 @@ if(typeof document!=="undefined"&&document.getElementById){
     document.getElementById("bari").style.width=(100-share)+"%";
     var rows=sipYearly(M,R,Y),html="";
     rows.forEach(function(row){
-      html+="<tr><td>"+row.year+"</td><td>"+inr(row.invested)+"</td><td>"+inr(row.value)+"</td><td>"+inr(row.gains)+"</td></tr>";
+      html+="<tr><td>"+Math.round(row.year*12)+"</td><td>"+inr(row.invested)+"</td><td>"+inr(row.value)+"</td><td>"+inr(row.gains)+"</td></tr>";
     });
     document.querySelector("#growth tbody").innerHTML=html;
   }

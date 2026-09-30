@@ -42,7 +42,7 @@
   <input id="c" inputmode="decimal" value="0">
   <label for="r">Annual interest rate (%)</label>
   <input id="r" inputmode="decimal" value="8">
-  <label for="y">Years</label>
+  <label for="y">Years (whole months, e.g. 1.5 = 18 months)</label>
   <input id="y" inputmode="decimal" value="10">
   <label for="f">Compounding frequency</label>
   <select id="f">
@@ -52,72 +52,28 @@
     <option value="12" selected>Monthly</option>
     <option value="365">Daily</option>
   </select>
-  <div class="hero"><small>Final amount</small><b id="fv">-</b></div>
+  <p id="err" role="status" style="color:#9a2929;font-size:.9rem;min-height:24px"></p><div class="hero"><small>Final amount</small><b id="fv">-</b></div>
   <div class="split">
     <div class="cell"><b id="dep">-</b><span>Total deposited</span></div>
     <div class="cell"><b id="int">-</b><span>Interest earned</span></div>
   </div>
   <div style="overflow-x:auto">
   <table>
-    <thead><tr><th>Year</th><th>Deposited</th><th>Interest</th><th>Balance</th></tr></thead>
+    <thead><tr><th>Month</th><th>Deposited</th><th>Interest</th><th>Balance</th></tr></thead>
     <tbody id="rows"></tbody>
   </table>
   </div>
   <div class="about">
     <h2>How contributions compound</h2>
-    <p>The principal compounds at the chosen frequency. Monthly contributions are added at the start of each month and earn the equivalent monthly rate derived from the effective annual yield - so daily compounding with monthly additions stays exact rather than approximated.</p>
+    <p>This is an equivalent-growth model. Monthly contributions arrive at each month's start; both principal and contributions earn an equivalent monthly rate derived from the nominal annual rate and chosen compounding frequency. For partial compounding periods, it uses fractional-period growth, not an actual bank interest-credit schedule. Duration must equal a whole number of months, up to 100 years. The final row includes partial years.</p>
     <h2>A note on rates</h2>
-    <p>FD and RD rates in India typically compound quarterly; savings accounts compound daily but credit monthly. Matching the frequency to the product matters more than most people think.</p>
+    <p>Enter the nominal annual rate, not an effective annual yield. Assumes a constant non-negative rate, no withdrawals, taxes, fees, daily date conventions or rounding of each credit. Confirm actual product rules before using the estimate.</p>
   </div>
   <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
 </div>
 <script>
-function effectiveAnnual(ratePct,freq){
-  return Math.pow(1+ratePct/100/freq,freq)-1;
-}
-function compoundYearly(P,monthly,ratePct,freq,years){
-  var ear=effectiveAnnual(ratePct,freq);
-  var monthlyRate=Math.pow(1+ear,1/12)-1;
-  var rows=[],bal=P,dep=P;
-  for(var y=1;y<=Math.round(years);y++){
-    var yearStart=bal;
-    for(var m=0;m<12;m++){
-      bal=(bal+monthly)*(1+monthlyRate);
-      dep+=monthly;
-    }
-    rows.push({year:y,deposited:dep,interest:bal-dep,balance:bal});
-  }
-  return {final:bal,deposited:dep,interest:bal-dep,rows:rows};
-}
-function inr(n){
-  if(typeof n!=="number"||isNaN(n))return "-";
-  return "\u20B9"+Math.round(n).toLocaleString("en-IN");
-}
-if(typeof document!=="undefined"&&document.getElementById){
-  var ids=["p","c","r","y","f"];
-  function render(){
-    var P=parseFloat(document.getElementById("p").value)||0;
-    var C=parseFloat(document.getElementById("c").value)||0;
-    var R=parseFloat(document.getElementById("r").value);
-    var Y=parseFloat(document.getElementById("y").value);
-    var F=parseInt(document.getElementById("f").value,10);
-    if(isNaN(R)||isNaN(Y)||Y<=0){document.getElementById("fv").textContent="-";return;}
-    var r=compoundYearly(P,C,R,F,Y);
-    document.getElementById("fv").textContent=inr(r.final);
-    document.getElementById("dep").textContent=inr(r.deposited);
-    document.getElementById("int").textContent=inr(r.interest);
-    var html="";
-    r.rows.forEach(function(row){
-      html+="<tr><td>"+row.year+"</td><td>"+inr(row.deposited)+"</td><td>"+inr(row.interest)+"</td><td>"+inr(row.balance)+"</td></tr>";
-    });
-    document.getElementById("rows").innerHTML=html;
-  }
-  ids.forEach(function(id){
-    document.getElementById(id).addEventListener("input",render);
-    document.getElementById(id).addEventListener("change",render);
-  });
-  render();
-}
-</script>
-</body>
-</html>
+function effectiveAnnual(ratePct,freq){if(!Number.isFinite(ratePct)||ratePct<0||ratePct>100||![1,2,4,12,365].includes(freq))throw Error('Use a 0–100% nominal rate and a listed compounding frequency.');return Math.expm1(freq*Math.log1p(ratePct/100/freq))}
+function compoundYearly(P,monthly,ratePct,freq,years){if(![P,monthly,years].every(Number.isFinite)||P<0||monthly<0||P>1e12||monthly>1e12||years<=0||years>100)throw Error('Use non-negative amounts up to 1 trillion and a duration above zero, at most 100 years.');var months=years*12,n=Math.round(months);if(n<1||Math.abs(months-n)>1e-7)throw Error('Duration must equal whole months. For example, 1.5 years = 18 months.');effectiveAnnual(ratePct,freq);var monthlyRate=Math.expm1(freq*Math.log1p(ratePct/100/freq)/12),rows=[],bal=P,dep=P;for(var m=1;m<=n;m++){bal=(bal+monthly)*(1+monthlyRate);dep+=monthly;if(!Number.isFinite(bal))throw Error('The result is too large. Reduce the amount, rate or duration.');if(m%12===0||m===n)rows.push({year:m/12,month:m,deposited:dep,interest:bal-dep,balance:bal})}return {final:bal,deposited:dep,interest:bal-dep,months:n,rows:rows}}
+function inr(n){return Number.isFinite(n)?'₹'+Math.round(n).toLocaleString('en-IN'):'-'}
+if(typeof document!=='undefined'&&document.getElementById){var ids=['p','c','r','y','f'],get=id=>document.getElementById(id);function render(){['fv','dep','int'].forEach(id=>get(id).textContent='-');get('rows').replaceChildren();try{if(ids.some(id=>!get(id).value.trim()))throw Error('Fill every field; enter zero explicitly for no principal or contribution.');var values=ids.map(id=>Number(get(id).value)),r=compoundYearly(values[0],values[1],values[2],values[4],values[3]);get('fv').textContent=inr(r.final);get('dep').textContent=inr(r.deposited);get('int').textContent=inr(r.interest);for(var row of r.rows){var tr=document.createElement('tr');[row.month,inr(row.deposited),inr(row.interest),inr(row.balance)].forEach(v=>{var td=document.createElement('td');td.textContent=v;tr.appendChild(td)});get('rows').appendChild(tr)}get('err').textContent=''}catch(e){get('err').textContent=e.message}}ids.forEach(id=>get(id).addEventListener('input',render));render()}
+</script></body></html>
