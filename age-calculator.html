@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Age Calculator - Exact Age in Years, Months, Days</title>
-<meta name="description" content="Free age calculator: enter your date of birth to get your exact age in years, months and days, plus total days, weeks and a next-birthday countdown. No sign-up, works offline.">
+<title>Age Calculator - Birth-Date-Anchored Calendar Age</title>
+<meta name="description" content="Birth-date-anchored calendar age with clamped month ends and February 28 for non-leap February 29 birthdays. Calendar totals and next-birthday countdown. Offline, no sign-up.">
 <meta name="theme-color" content="#faf5f3">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -23,7 +23,7 @@
   .cell{background:#fff;border:1px solid #e3d6cf;border-radius:12px;padding:12px;text-align:center}
   .cell b{display:block;font-size:1.15rem;font-variant-numeric:tabular-nums}
   .cell span{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;color:#7d6f68}
-  .bday{margin-top:12px;background:#c2564b;color:#fff;border-radius:12px;padding:14px;text-align:center;font-size:.98rem}
+  .bday{margin-top:12px;background:#b94c42;color:#fff;border-radius:12px;padding:14px;text-align:center;font-size:.98rem}
   .about{margin-top:34px;font-size:.9rem;color:#5c514b}
   .about h2{font-size:1.02rem;color:#2b2320;margin:18px 0 6px}
   footer{margin-top:30px;font-size:.78rem;color:#b3a49c;text-align:center}
@@ -39,11 +39,12 @@ footer{color:#706662}
 <body>
 <div class="wrap">
   <h1>Age Calculator</h1>
-  <p class="sub">Your exact age, down to the day.</p>
+  <p class="sub">Calendar age, with the date convention shown below.</p>
   <label for="dob">Date of birth</label>
   <input id="dob" type="date">
   <label for="asof">Age at date (defaults to today)</label>
   <input id="asof" type="date">
+  <p id="err" role="status" style="color:#9a2929;font-size:.9rem;margin-top:10px;min-height:1.55em"></p>
   <div class="hero">
     <div><b id="y">-</b><span>Years</span></div>
     <div><b id="m">-</b><span>Months</span></div>
@@ -57,40 +58,37 @@ footer{color:#706662}
   </div>
   <div class="bday" id="bday" style="display:none"></div>
   <div class="about">
-    <h2>How exact age is counted</h2>
-    <p>Years and months roll over on your birthday's date each month, and days pick up the remainder - the same way age is counted on official forms. Totals are simple calendar differences.</p>
+    <h2>How calendar age is counted</h2>
+    <p>Completed months are measured from your birth date, clamping to the last day when a month is shorter. Twelve completed months make a year. A February 29 birthday uses February 28 in non-leap years here; official or legal rules may differ. The next birthday is strictly after the selected date. Totals count calendar days; hours are days × 24, not elapsed clock hours across time-zone changes.</p>
     <h2>Private by design</h2>
     <p>Your birth date never leaves this page. Everything is computed on your device, with no uploads and no tracking.</p>
   </div>
   <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
 </div>
 <script>
-function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+function civilDate(y,m,d){var t=new Date(0);t.setUTCFullYear(y,m,d);t.setUTCHours(0,0,0,0);return t;}
+function civilDay(date){var t=new Date(0);t.setUTCFullYear(date.getUTCFullYear(),date.getUTCMonth(),date.getUTCDate());t.setUTCHours(0,0,0,0);return t.getTime()/86400000;}
+function validCivil(date){return date instanceof Date&&Number.isFinite(date.getTime())&&date.getUTCFullYear()>=1&&date.getUTCFullYear()<=9999;}
+function parseCivil(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;var y=Number(s.slice(0,4)),m=Number(s.slice(5,7))-1,d=Number(s.slice(8,10)),t=civilDate(y,m,d);return validCivil(t)&&t.getUTCFullYear()===y&&t.getUTCMonth()===m&&t.getUTCDate()===d?t:null;}
+function daysInMonth(y,m){return civilDate(y,m+1,0).getUTCDate();}
 function addClamped(date,years,months){
-  var y=date.getFullYear()+years,m=date.getMonth()+months;
+  var y=date.getUTCFullYear()+years,m=date.getUTCMonth()+months;
   y+=Math.floor(m/12);m=((m%12)+12)%12;
-  var d=Math.min(date.getDate(),daysInMonth(y,m));
-  return new Date(y,m,d);
+  return civilDate(y,m,Math.min(date.getUTCDate(),daysInMonth(y,m)));
 }
 function ageBetween(dob,asof){
-  if(!(dob instanceof Date)||isNaN(dob)||!(asof instanceof Date)||isNaN(asof))return null;
-  if(asof<dob)return null;
-  var y=asof.getFullYear()-dob.getFullYear();
-  var anchor=addClamped(dob,y,0);
-  if(anchor>asof){y--;anchor=addClamped(dob,y,0);}
-  var m=(asof.getFullYear()-anchor.getFullYear())*12+(asof.getMonth()-anchor.getMonth());
-  var a2=addClamped(anchor,0,m);
-  if(a2>asof){m--;a2=addClamped(anchor,0,m);}
-  var d=Math.round((asof-a2)/86400000);
-  var totalDays=Math.floor((Date.UTC(asof.getFullYear(),asof.getMonth(),asof.getDate())-Date.UTC(dob.getFullYear(),dob.getMonth(),dob.getDate()))/86400000);
-  return {years:y,months:m,days:d,totalDays:totalDays};
+  if(!validCivil(dob)||!validCivil(asof)||civilDay(asof)<civilDay(dob))return null;
+  var months=(asof.getUTCFullYear()-dob.getUTCFullYear())*12+asof.getUTCMonth()-dob.getUTCMonth();
+  var anchor=addClamped(dob,0,months);
+  if(civilDay(anchor)>civilDay(asof)){months--;anchor=addClamped(dob,0,months);}
+  return {years:Math.floor(months/12),months:months%12,days:civilDay(asof)-civilDay(anchor),totalDays:civilDay(asof)-civilDay(dob)};
 }
 function nextBirthday(dob,asof){
-  var y=asof.getFullYear();
-  var nb=new Date(y,dob.getMonth(),dob.getDate());
-  if(nb<=asof)nb=new Date(y+1,dob.getMonth(),dob.getDate());
-  var days=Math.round((Date.UTC(nb.getFullYear(),nb.getMonth(),nb.getDate())-Date.UTC(asof.getFullYear(),asof.getMonth(),asof.getDate()))/86400000);
-  return {date:nb,days:days,turning:nb.getFullYear()-dob.getFullYear()};
+  if(!ageBetween(dob,asof))return null;
+  var y=asof.getUTCFullYear(),nb=addClamped(dob,y-dob.getUTCFullYear(),0);
+  if(civilDay(nb)<=civilDay(asof))nb=addClamped(dob,y+1-dob.getUTCFullYear(),0);
+  if(!validCivil(nb))return null;
+  return {date:nb,days:civilDay(nb)-civilDay(asof),turning:nb.getUTCFullYear()-dob.getUTCFullYear()};
 }
 if(typeof document!=="undefined"&&document.getElementById){
   var dobEl=document.getElementById("dob"),asofEl=document.getElementById("asof");
@@ -100,13 +98,14 @@ if(typeof document!=="undefined"&&document.getElementById){
   }
   asofEl.value=todayStr();
   function render(){
-    var dob=dobEl.value?new Date(dobEl.value+"T00:00:00"):null;
-    var asof=asofEl.value?new Date(asofEl.value+"T00:00:00"):null;
+    var dob=parseCivil(dobEl.value);
+    var asof=parseCivil(asofEl.value);
     var r=dob&&asof?ageBetween(dob,asof):null;
     var bd=document.getElementById("bday");
+    document.getElementById("err").textContent=!dobEl.value?"":(!dob||!asof?"Enter both valid dates between years 0001 and 9999.":(!r?"Age at date must not precede birth date.":""));
     if(!r){
       ["y","m","d","tm","tw","td","th"].forEach(function(id){document.getElementById(id).textContent="-"});
-      bd.style.display="none";
+      bd.textContent="";bd.style.display="none";
       return;
     }
     document.getElementById("y").textContent=r.years;
@@ -117,8 +116,9 @@ if(typeof document!=="undefined"&&document.getElementById){
     document.getElementById("td").textContent=r.totalDays.toLocaleString("en-IN");
     document.getElementById("th").textContent=(r.totalDays*24).toLocaleString("en-IN");
     var nb=nextBirthday(dob,asof);
+    if(!nb){bd.textContent="Next birthday is outside the supported year range.";bd.style.display="block";return;}
     bd.style.display="block";
-    bd.textContent="Next birthday: "+nb.date.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"})+" - turning "+nb.turning+" in "+nb.days+" day"+(nb.days===1?"":"s");
+    bd.textContent="Next birthday: "+nb.date.toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric",timeZone:"UTC"})+" - turning "+nb.turning+" in "+nb.days+" day"+(nb.days===1?"":"s");
   }
   dobEl.addEventListener("input",render);
   asofEl.addEventListener("input",render);

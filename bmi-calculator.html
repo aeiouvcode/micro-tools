@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>BMI Calculator - Body Mass Index with WHO & Indian Cutoffs</title>
-<meta name="description" content="Free BMI calculator with WHO and Indian/Asian category cutoffs, BMI Prime and your healthy weight range. Metric and imperial. No sign-up, runs on your device.">
+<title>Adult BMI Calculator - WHO Categories & Asian Action Points</title>
+<meta name="description" content="Adult BMI calculator with WHO categories and Asian public-health action points, not Indian diagnostic cutoffs. Metric and imperial, local-first.">
 <meta name="theme-color" content="#f3f6f4">
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -42,30 +42,34 @@ footer{color:#747d77;opacity:1}
 
 .units button.on{background:#4b6682;border-color:#4b6682;color:#fff}
 footer{color:#5f6662}
+input[aria-invalid="true"]{border:2px solid #9a2929}
+.field-error{color:#9a2929;font-size:.85rem;margin-top:4px}
+.about a{color:#3a526c}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>BMI Calculator</h1>
-  <p class="sub">WHO and Indian cutoffs side by side - they differ, and it matters.</p>
+  <p class="sub">Adult BMI screening, with WHO categories and Asian action points.</p>
   <div class="units">
     <button id="um" class="on" aria-pressed="true">Metric (kg, cm)</button>
     <button id="ui" aria-pressed="false">Imperial (lb, ft/in)</button>
   </div>
   <div id="metric">
     <label for="kg">Weight (kg)</label>
-    <input id="kg" inputmode="decimal" value="70">
+    <input id="kg" aria-invalid="false" aria-describedby="kg-err" inputmode="decimal" value="70"><p id="kg-err" class="field-error"></p>
     <label for="cm">Height (cm)</label>
-    <input id="cm" inputmode="decimal" value="170">
+    <input id="cm" aria-invalid="false" aria-describedby="cm-err" inputmode="decimal" value="170"><p id="cm-err" class="field-error"></p>
   </div>
   <div id="imperial" style="display:none">
     <label for="lb">Weight (lb)</label>
-    <input id="lb" inputmode="decimal" value="154">
+    <input id="lb" aria-invalid="false" aria-describedby="lb-err" inputmode="decimal" value="154"><p id="lb-err" class="field-error"></p>
     <div class="pair">
-      <div><label for="ft">Height (ft)</label><input id="ft" inputmode="numeric" value="5"></div>
-      <div><label for="inch">Height (in)</label><input id="inch" inputmode="decimal" value="7"></div>
+      <div><label for="ft">Height (ft)</label><input id="ft" aria-invalid="false" aria-describedby="ft-err" inputmode="numeric" value="5"><p id="ft-err" class="field-error"></p></div>
+      <div><label for="inch">Height (in)</label><input id="inch" aria-invalid="false" aria-describedby="inch-err" inputmode="decimal" value="7"><p id="inch-err" class="field-error"></p></div>
     </div>
   </div>
+  <p id="err" role="status" style="color:#9a2929;font-size:.9rem;min-height:1.55em"></p>
   <div class="hero"><b id="bmi">-</b><span id="cat"></span></div>
   <div class="scale">
     <div class="seg"><i style="width:17%;background:#7ba3c4"></i><i style="width:25%;background:#8fae8b"></i><i style="width:17%;background:#d3a24b"></i><i style="width:41%;background:#b0584d"></i></div>
@@ -77,25 +81,31 @@ footer{color:#5f6662}
   </div>
   <p class="note" id="asian"></p>
   <div class="about">
-    <h2>Why two sets of cutoffs?</h2>
-    <p>WHO categories call 25+ overweight and 30+ obese. For South Asian bodies, health risks rise earlier, so Indian guidelines (MoHFW/consensus) flag 23+ as overweight and 27.5+ as obese. This tool shows both.</p>
+    <h2>Categories and action points</h2>
+    <p>WHO adult categories use BMI 25 for overweight and 30 for obesity. A 2004 WHO expert consultation kept these international categories and identified 23, 27.5, 32.5 and 37.5 as potential additional public-health action points for Asian populations. This page shows the first two (23 and 27.5). These are not universal Asian or Indian diagnostic cutoffs. This page shows whether you have reached each action point, not a second obesity diagnosis.</p>
+    <p>For adults only; not a child growth assessment or a pregnancy weight guide. BMI is a screening measure, not an individual diagnosis.</p>
+    <p>Sources: <a href="https://www.who.int/news-room/fact-sheets/detail/obesity-and-overweight" target="_blank" rel="noopener noreferrer">WHO adult categories</a>; <a href="https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(03)15268-3/abstract" target="_blank" rel="noopener noreferrer">WHO expert consultation (2004)</a>. Checked 1 October 2026.</p>
     <h2>What BMI Prime is</h2>
     <p>BMI Prime is your BMI divided by 25 - the upper healthy bound. 1.00 is exactly the boundary, below 1 is under or inside the healthy zone. BMI is a screening number, not a diagnosis; it does not see muscle, bone or distribution.</p>
   </div>
   <footer>Runs entirely on your device &middot; No uploads &middot; No tracking</footer>
 </div>
 <script>
+function positiveDecimal(s){
+  if(typeof s!=="string"||!/^\s*(?:\d+(?:\.\d*)?|\.\d+)\s*$/.test(s))return NaN;
+  var n=Number(s);return Number.isFinite(n)&&n>=0?n:NaN;
+}
 function bmiValue(weightKg,heightM){
-  if(weightKg<=0||heightM<=0)return NaN;
-  return weightKg/(heightM*heightM);
+  if(!Number.isFinite(weightKg)||!Number.isFinite(heightM)||weightKg<=0||heightM<=0)return NaN;
+  var b=weightKg/(heightM*heightM);
+  return Number.isFinite(b)&&b>0&&Number.isFinite(b*100)?b:NaN;
 }
 function bmiCategory(b,asian){
-  if(isNaN(b))return "";
+  if(!Number.isFinite(b)||b<=0)return "";
   if(asian){
-    if(b<18.5)return "Underweight (Indian cutoffs)";
-    if(b<23)return "Healthy (Indian cutoffs)";
-    if(b<27.5)return "Overweight (Indian cutoffs)";
-    return "Obese (Indian cutoffs)";
+    if(b<23)return "Below the 23 Asian action point";
+    if(b<27.5)return "At or above the 23 Asian action point";
+    return "At or above the 27.5 Asian action point";
   }
   if(b<18.5)return "Underweight (WHO)";
   if(b<25)return "Healthy (WHO)";
@@ -106,7 +116,7 @@ function healthyRangeKg(heightM){
   return {low:18.5*heightM*heightM,high:24.99*heightM*heightM};
 }
 function markerPct(b){
-  if(isNaN(b))return 0;
+  if(!Number.isFinite(b)||b<=0)return 0;
   var v=(b-10)/(40-10);
   return Math.max(0,Math.min(1,v))*100;
 }
@@ -114,23 +124,35 @@ if(typeof document!=="undefined"&&document.getElementById){
   var metric=true;
   var um=document.getElementById("um"),ui=document.getElementById("ui");
   function inputs(){
-    if(metric){
-      return {kg:parseFloat(document.getElementById("kg").value),m:parseFloat(document.getElementById("cm").value)/100};
+    var errors={};
+    function value(id,label,positive){var n=positiveDecimal(document.getElementById(id).value);if(!Number.isFinite(n)||(positive&&n<=0))errors[id]="Enter "+label+" as a "+(positive?"positive":"non-negative")+" plain decimal number.";return n;}
+    var kg,m;
+    if(metric){kg=value("kg","weight in kg",true);m=value("cm","height in cm",true)/100;}
+    else{
+      kg=value("lb","weight in lb",true)*0.45359237;var ft=value("ft","feet",false),inch=value("inch","inches",false);
+      if(Number.isFinite(ft)&&!Number.isInteger(ft))errors.ft="Use whole feet.";
+      if(Number.isFinite(inch)&&inch>=12)errors.inch="Use inches from 0 to below 12.";
+      m=(ft*12+inch)*0.0254;
+      if(ft===0&&inch===0){errors.ft="Total height must be above zero.";errors.inch="Total height must be above zero.";}
     }
-    var lb=parseFloat(document.getElementById("lb").value);
-    var ft=parseFloat(document.getElementById("ft").value)||0;
-    var inch=parseFloat(document.getElementById("inch").value)||0;
-    return {kg:lb*0.45359237,m:(ft*12+inch)*0.0254};
+    return {kg:kg,m:m,errors:errors};
   }
   function render(){
     var inp=inputs();
     var b=bmiValue(inp.kg,inp.m);
-    document.getElementById("bmi").textContent=isNaN(b)?"-":(Math.round(b*10)/10);
-    document.getElementById("cat").textContent=bmiCategory(b,false);
-    document.getElementById("prime").textContent=isNaN(b)?"-":(Math.round(b/25*100)/100);
     var r=healthyRangeKg(inp.m);
-    document.getElementById("range").textContent=isNaN(b)?"-":(metric?(Math.round(r.low*10)/10+"-"+Math.round(r.high*10)/10+" kg"):(Math.round(r.low/0.45359237)+"-"+Math.round(r.high/0.45359237)+" lb"));
-    document.getElementById("asian").textContent=isNaN(b)?"":"By Indian cutoffs: "+bmiCategory(b,true)+".";
+    if(!Number.isFinite(r.low*10)||!Number.isFinite(r.high*10)||r.low<=0||r.high<=0)b=NaN;
+    if(Object.keys(inp.errors).length)b=NaN;
+    var valid=Number.isFinite(b);
+    if(!valid&&!Object.keys(inp.errors).length){inp.errors[metric?"kg":"lb"]="These values are outside the supported calculation range.";inp.errors[metric?"cm":"ft"]="These values are outside the supported calculation range.";}
+    ["kg","cm","lb","ft","inch"].forEach(function(id){var msg=inp.errors[id]||"";document.getElementById(id).setAttribute("aria-invalid",String(!!msg));document.getElementById(id+"-err").textContent=msg;});
+    document.getElementById("err").textContent=valid?"":"Check the highlighted field.";
+    document.getElementById("mark").style.display=valid?"":"none";
+    document.getElementById("bmi").textContent=!valid?"-":(Math.round(b*10)/10);
+    document.getElementById("cat").textContent=bmiCategory(b,false);
+    document.getElementById("prime").textContent=!valid?"-":(Math.round(b/25*100)/100);
+    document.getElementById("range").textContent=!valid?"-":(metric?(Math.round(r.low*10)/10+"-"+Math.round(r.high*10)/10+" kg"):(Math.round(r.low/0.45359237)+"-"+Math.round(r.high/0.45359237)+" lb"));
+    document.getElementById("asian").textContent=!valid?"":"Asian public-health action points: "+bmiCategory(b,true)+".";
     document.getElementById("mark").style.left=markerPct(b)+"%";
   }
   um.addEventListener("click",function(){metric=true;um.setAttribute("aria-pressed","true");ui.setAttribute("aria-pressed","false");um.classList.add("on");ui.classList.remove("on");document.getElementById("metric").style.display="";document.getElementById("imperial").style.display="none";render();});
