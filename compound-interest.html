@@ -30,6 +30,12 @@
   .about{margin-top:34px;font-size:.9rem;color:#544e5c}
   .about h2{font-size:1.02rem;color:#26232b;margin:18px 0 6px}
   footer{margin-top:30px;font-size:.78rem;color:#a49cad;text-align:center}
+
+.hero small{color:#fff;opacity:1}
+footer{color:#7d7783;opacity:1}
+table{min-width:420px}
+
+footer{color:#66626b}
 </style>
 </head>
 <body>
@@ -57,7 +63,7 @@
     <div class="cell"><b id="dep">-</b><span>Total deposited</span></div>
     <div class="cell"><b id="int">-</b><span>Interest earned</span></div>
   </div>
-  <div style="overflow-x:auto">
+  <p style="font-size:.85rem">Swipe the table sideways on small screens for every column.</p><div style="overflow-x:auto;max-width:100%" role="region" aria-label="Compound growth schedule" tabindex="0">
   <table>
     <thead><tr><th>Month</th><th>Deposited</th><th>Interest</th><th>Balance</th></tr></thead>
     <tbody id="rows"></tbody>

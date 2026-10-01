@@ -14,7 +14,7 @@
   h1{font-size:1.45rem;font-weight:700;letter-spacing:-.01em}
   .sub{color:#5f6f66;font-size:.92rem;margin:4px 0 20px}
   .units{display:flex;gap:8px;margin-bottom:14px}
-  .units button{flex:1;min-height:42px;font-size:14px;font-weight:600;font-family:inherit;border-radius:999px;border:1px solid #cfd9d3;background:#fff;color:#4d5c53;cursor:pointer}
+  .units button{flex:1;min-height:48px;font-size:14px;font-weight:600;font-family:inherit;border-radius:999px;border:1px solid #cfd9d3;background:#fff;color:#4d5c53;cursor:pointer}
   .units button.on{background:#5b7a99;border-color:#5b7a99;color:#fff}
   label{display:block;font-size:.78rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:#5f6f66;margin:12px 0 5px}
   input{width:100%;min-height:50px;padding:10px 14px;font-size:17px;font-family:inherit;color:#212825;background:#fff;border:1px solid #cfd9d3;border-radius:10px}
@@ -36,6 +36,12 @@
   .about{margin-top:34px;font-size:.9rem;color:#46554c}
   .about h2{font-size:1.02rem;color:#212825;margin:18px 0 6px}
   footer{margin-top:30px;font-size:.78rem;color:#98a59c;text-align:center}
+
+
+footer{color:#747d77;opacity:1}
+
+.units button.on{background:#4b6682;border-color:#4b6682;color:#fff}
+footer{color:#5f6662}
 </style>
 </head>
 <body>
@@ -43,8 +49,8 @@
   <h1>BMI Calculator</h1>
   <p class="sub">WHO and Indian cutoffs side by side - they differ, and it matters.</p>
   <div class="units">
-    <button id="um" class="on">Metric (kg, cm)</button>
-    <button id="ui">Imperial (lb, ft/in)</button>
+    <button id="um" class="on" aria-pressed="true">Metric (kg, cm)</button>
+    <button id="ui" aria-pressed="false">Imperial (lb, ft/in)</button>
   </div>
   <div id="metric">
     <label for="kg">Weight (kg)</label>
@@ -127,8 +133,8 @@ if(typeof document!=="undefined"&&document.getElementById){
     document.getElementById("asian").textContent=isNaN(b)?"":"By Indian cutoffs: "+bmiCategory(b,true)+".";
     document.getElementById("mark").style.left=markerPct(b)+"%";
   }
-  um.addEventListener("click",function(){metric=true;um.classList.add("on");ui.classList.remove("on");document.getElementById("metric").style.display="";document.getElementById("imperial").style.display="none";render();});
-  ui.addEventListener("click",function(){metric=false;ui.classList.add("on");um.classList.remove("on");document.getElementById("imperial").style.display="";document.getElementById("metric").style.display="none";render();});
+  um.addEventListener("click",function(){metric=true;um.setAttribute("aria-pressed","true");ui.setAttribute("aria-pressed","false");um.classList.add("on");ui.classList.remove("on");document.getElementById("metric").style.display="";document.getElementById("imperial").style.display="none";render();});
+  ui.addEventListener("click",function(){metric=false;ui.setAttribute("aria-pressed","true");um.setAttribute("aria-pressed","false");ui.classList.add("on");um.classList.remove("on");document.getElementById("imperial").style.display="";document.getElementById("metric").style.display="none";render();});
   ["kg","cm","lb","ft","inch"].forEach(function(id){document.getElementById(id).addEventListener("input",render);});
   render();
 }
